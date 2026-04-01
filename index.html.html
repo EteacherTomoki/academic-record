@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academic Record — 学習記録アプリ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f2ed;
+    --surface: #ffffff;
+    --surface2: #f0ece5;
+    --ink: #1a1714;
+    --ink2: #5a5550;
+    --ink3: #9a9590;
+    --accent: #c4622d;
+    --accent-light: #f5e8df;
+    --accent2: #2d6bc4;
+    --green: #2d8c5a;
+    --border: rgba(26,23,20,0.12);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 16px rgba(26,23,20,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; font-size: 15px; }
+
+  /* HEADER */
+  header { background: var(--ink); color: white; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; gap: 12px; flex-wrap: wrap; }
+  .logo { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -0.5px; flex-shrink: 0; }
+  .logo span { color: #e8a47a; }
+
+  /* Header controls */
+  .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .header-controls label { color: rgba(255,255,255,0.6); font-size: 13px; white-space: nowrap; }
+  .hdr-select {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    color: white; padding: 6px 10px; border-radius: var(--radius-sm);
+    font-size: 13px; cursor: pointer; outline: none; font-family: 'Noto Sans JP', sans-serif; max-width: 140px;
+  }
+  .hdr-select option { background: #1a1714; color: white; }
+  .btn-hdr {
+    background: var(--accent); color: white; border: none; padding: 7px 13px;
+    border-radius: var(--radius-sm); font-size: 13px; cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif; font-weight: 500; transition: opacity 0.15s; white-space: nowrap;
+  }
+  .btn-hdr:hover { opacity: 0.85; }
+  .btn-hdr.secondary { background: rgba(255,255,255,0.15); }
+  .btn-hdr.secondary:hover { background: rgba(255,255,255,0.25); }
+
+  /* CLASS LABEL BADGE */
+  .class-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+    color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  }
+  .class-dot { width: 8px; height: 8px; border-radius: 50%; background: #e8a47a; flex-shrink: 0; }
+
+  /* NAV TABS */
+  .nav-tabs { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; padding: 0 1.5rem; gap: 0; overflow-x: auto; }
+  .tab-btn { padding: 13px 18px; background: none; border: none; border-bottom: 2.5px solid transparent; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; font-weight: 500; color: var(--ink3); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: var(--ink2); }
+
+  .main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 1.4rem; box-shadow: var(--shadow); }
+  .card-title { font-size: 17px; font-weight: 700; margin-bottom: 1.1rem; color: var(--ink); }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 500; color: var(--ink2); }
+  input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'Noto Sans JP', sans-serif; font-size: 14px; color: var(--ink);
+    background: var(--surface); outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+  .btn-submit { background: var(--accent); color: white; border: none; padding: 10px 26px; border-radius: var(--radius-sm); font-family: 'Noto Sans JP', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; margin-top: 0.4rem; }
+  .btn-submit:hover { opacity: 0.88; }
+  .btn-danger { background: none; border: 1px solid #e24b4a; color: #e24b4a; padding: 5px 10px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.15s; }
+  .btn-danger:hover { background: #fcebeb; }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.4rem; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem 1.1rem; }
+  .stat-label { font-size: 11px; color: var(--ink3); font-weight: 500; margin-bottom: 5px; }
+  .stat-value { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--ink); }
+  .stat-sub { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+
+  /* CHARTS */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; margin-bottom: 1.4rem; }
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; padding: 9px 11px; background: var(--surface2); font-weight: 700; font-size: 11px; color: var(--ink2); border-bottom: 1px solid var(--border); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 10px 11px; color: var(--ink); vertical-align: middle; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge-japanese  { background: #ede8f5; color: #4a2db5; }
+  .badge-math      { background: #dfe8f5; color: #185fa5; }
+  .badge-science   { background: #dff0e8; color: #3B6D11; }
+  .badge-english   { background: #f5e8df; color: #854F0B; }
+  .badge-history   { background: #FAEEDA; color: #633806; }
+  .badge-tech      { background: #dff5f0; color: #0b6b5a; }
+  .badge-pe        { background: #fde8f0; color: #a01a50; }
+  .badge-music     { background: #fff3d6; color: #8a5500; }
+  .badge-other     { background: #e8e8e8; color: #5a5550; }
+
+  /* CLASS COLOR BADGES */
+  .class-label-badge { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+
+  /* GOAL CARDS */
+  .goals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+  .goal-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; }
+  .goal-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: .8rem; }
+  .goal-test-name { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .goal-test-date { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+  .goal-days-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; white-space: nowrap; }
+  .goal-days-badge.urgent { background: #f5e0e0; color: #8b1a1a; }
+  .goal-days-badge.normal { background: var(--accent-light); color: var(--accent); }
+  .goal-days-badge.done   { background: var(--surface2); color: var(--ink3); }
+  /* 教科別スコアグリッド */
+  .goal-scores-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: .8rem; }
+  .goal-score-item { background: var(--surface2); border-radius: 6px; padding: 5px 6px; text-align: center; }
+  .goal-score-subj { font-size: 9px; color: var(--ink3); margin-bottom: 2px; }
+  .goal-score-val  { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1; }
+  .goal-score-unit { font-size: 9px; color: var(--ink3); }
+  .goal-total-row  { display: flex; align-items: center; gap: 8px; margin-bottom: .5rem; font-size: 13px; }
+  .goal-total-num  { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--accent); }
+  .goal-action-text { font-size: 12px; color: var(--ink2); line-height: 1.5; background: #fffaf6; border-left: 3px solid var(--accent-light); padding: 5px 8px; border-radius: 0 4px 4px 0; margin-bottom: .6rem; }
+  .goal-subject { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 0.4px; margin-bottom: 5px; }
+  .goal-score { display: inline-block; background: var(--accent-light); color: var(--accent); font-weight: 700; font-size: 22px; padding: 3px 9px; border-radius: 7px; margin-bottom: 5px; }
+  .goal-text { font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--ink); }
+  .goal-target { font-size: 13px; color: var(--ink2); }
+  .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 7px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s; }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--ink3); }
+  .empty-state p { font-size: 15px; margin-bottom: 6px; }
+  .empty-state small { font-size: 13px; }
+
+  /* BANNER */
+  .no-student-banner { background: var(--accent-light); border: 1px solid rgba(196,98,45,0.2); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 1.4rem; font-size: 14px; color: var(--accent); display: none; }
+  .no-student-banner.visible { display: block; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,23,20,0.5); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius); padding: 1.6rem; width: 460px; max-width: 94vw; box-shadow: 0 8px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 1rem; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 1rem; }
+  .btn-cancel { background: none; border: 1px solid var(--border); color: var(--ink2); padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; }
+
+  /* EXCEL IMPORT AREA */
+  .import-zone { border: 2px dashed rgba(196,98,45,0.35); border-radius: var(--radius-sm); padding: 1.8rem 1rem; text-align: center; cursor: pointer; transition: all 0.2s; background: #fffaf7; margin: 0.8rem 0; }
+  .import-zone:hover, .import-zone.drag { border-color: var(--accent); background: var(--accent-light); }
+  .import-zone p { color: var(--ink2); font-size: 14px; margin-bottom: 6px; }
+  .import-zone small { color: var(--ink3); font-size: 12px; }
+  .import-icon { font-size: 32px; margin-bottom: 8px; }
+  .import-preview { margin-top: 1rem; }
+  .preview-row { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; align-items: center; }
+  .preview-row:last-child { border-bottom: none; }
+  .preview-class { font-weight: 600; min-width: 90px; font-size: 12px; }
+  .preview-name { color: var(--ink); }
+  .preview-id { color: var(--ink3); font-size: 11px; }
+  .import-count { background: var(--accent-light); color: var(--accent); font-weight: 700; font-size: 13px; padding: 6px 14px; border-radius: 20px; display: inline-block; margin-top: 8px; }
+  .import-warning { background: #faeeda; color: #633806; font-size: 12px; padding: 6px 12px; border-radius: var(--radius-sm); margin-top: 6px; }
+
+  /* CLASS FILTER TABS */
+  .class-filter-wrap { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .class-filter-btn { padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; color: var(--ink2); transition: all 0.15s; }
+  .class-filter-btn.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .class-filter-btn:hover:not(.active) { border-color: var(--ink2); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--ink); color: white; padding: 11px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; z-index: 300; opacity: 0; transform: translateY(10px); transition: all 0.2s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* CLASS COLORS — 10 rotating palette */
+  .cc0 { background: #dfe8f5; color: #185fa5; }
+  .cc1 { background: #dff0e8; color: #3B6D11; }
+  .cc2 { background: #f5e8df; color: #854F0B; }
+  .cc3 { background: #faeeda; color: #633806; }
+  .cc4 { background: #ede8f5; color: #4a2db5; }
+  .cc5 { background: #f5dfdf; color: #8c2d2d; }
+  .cc6 { background: #dff5f0; color: #0b6b5a; }
+  .cc7 { background: #f5f0df; color: #7a6800; }
+  .cc8 { background: #f0dff5; color: #6b2d8c; }
+  .cc9 { background: #e8e8e8; color: #3a3a3a; }
+
+  /* STUDENT LIST */
+  .student-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; margin-top: 8px; }
+  .student-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); transition: background 0.1s; }
+  .student-item:hover { background: var(--surface2); }
+  .student-item .s-name { font-weight: 500; font-size: 14px; flex: 1; }
+  .student-item .s-id { font-size: 11px; color: var(--ink3); }
+  .student-item .s-note { font-size: 11px; color: var(--ink3); font-style: italic; }
+
+  /* SCHOOL CALENDAR */
+  .cal-section { margin-top: 1.6rem; }
+  .cal-section-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 1rem; }
+  .cal-month-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .cal-month-nav button { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 12px; cursor: pointer; font-size: 14px; color: var(--ink2); font-family: 'Noto Sans JP', sans-serif; transition: all 0.15s; }
+  .cal-month-nav button:hover { border-color: var(--accent); color: var(--accent); }
+  .cal-month-label { font-size: 16px; font-weight: 700; min-width: 100px; text-align: center; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-dow { text-align: center; font-size: 11px; font-weight: 700; padding: 4px 0; color: var(--ink3); }
+  .cal-dow.sun { color: #d44; }
+  .cal-dow.sat { color: #44a; }
+  .cal-cell { min-height: 68px; border: 1px solid var(--border); border-radius: 6px; padding: 5px 5px 4px; background: var(--surface); transition: background 0.1s; position: relative; }
+  .cal-cell.other-month { background: var(--surface2); opacity: 0.45; }
+  .cal-cell.today { border-color: var(--accent); border-width: 2px; }
+  .cal-cell.has-event { background: #fffaf6; }
+  .cal-day-num { font-size: 12px; font-weight: 600; color: var(--ink2); margin-bottom: 3px; }
+  .cal-cell.sun .cal-day-num { color: #d44; }
+  .cal-cell.sat .cal-day-num { color: #44a; }
+  .cal-cell.today .cal-day-num { color: var(--accent); font-weight: 700; }
+  .cal-event { font-size: 9.5px; line-height: 1.3; padding: 1px 4px; border-radius: 3px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev-test    { background: #f5e0e0; color: #8b1a1a; }
+  .ev-event   { background: #dff0e8; color: #1a5c34; }
+  .ev-holiday { background: #ede8f5; color: #3a1a8b; }
+  .ev-health  { background: #faeeda; color: #6b3600; }
+  .cal-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink2); }
+  .cal-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  @media (max-width: 700px) {
+    .cal-grid { gap: 2px; }
+    .cal-cell { min-height: 52px; padding: 3px; }
+    .cal-event { font-size: 8.5px; }
+  }
+
+  /* ===== TEACHER VIEW ===== */
+  /* Lock screen overlay */
+  .teacher-lock {
+    position: fixed; inset: 0; z-index: 500;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .teacher-lock-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 2.4rem 2rem;
+    width: 360px; max-width: 92vw; box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .teacher-lock-card .lock-icon { font-size: 38px; margin-bottom: .8rem; }
+  .teacher-lock-card h2 { font-size: 20px; font-weight: 700; margin-bottom: .4rem; }
+  .teacher-lock-card p { font-size: 13px; color: var(--ink2); margin-bottom: 1.4rem; line-height: 1.6; }
+  .teacher-lock-card input[type="password"] {
+    width: 100%; padding: 11px 14px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 15px; font-family: 'Noto Sans JP', sans-serif;
+    text-align: center; letter-spacing: 4px; outline: none; margin-bottom: .8rem;
+    transition: border-color .15s;
+  }
+  .teacher-lock-card input[type="password"]:focus { border-color: var(--accent); }
+  .teacher-lock-card .lock-error { color: #e24b4a; font-size: 12px; min-height: 18px; margin-bottom: .6rem; }
+  .teacher-lock-card .btn-unlock {
+    width: 100%; background: var(--accent); color: white; border: none;
+    padding: 12px; border-radius: var(--radius-sm); font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity .15s;
+  }
+  .teacher-lock-card .btn-unlock:hover { opacity: .88; }
+  .teacher-lock-card .btn-change-pw {
+    margin-top: 10px; background: none; border: none; color: var(--ink3);
+    font-size: 12px; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; text-decoration: underline;
+  }
+
+  /* Teacher tab inner layout */
+  #tab-teacher .teacher-header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 1.4rem;
+  }
+  #tab-teacher .teacher-header h2 { font-size: 20px; font-weight: 700; }
+  .teacher-class-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.4rem; }
+  .teacher-class-tab {
+    padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--surface); font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: 'Noto Sans JP', sans-serif; color: var(--ink2);
+    transition: all .15s;
+  }
+  .teacher-class-tab.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .teacher-class-tab:hover:not(.active) { border-color: var(--ink2); }
+
+  /* Teacher stats row — 5 cols */
+  .t-stats-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 1.4rem; }
+  .t-stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .9rem 1rem; }
+  .t-stat-label { font-size: 10px; color: var(--ink3); font-weight: 500; margin-bottom: 4px; }
+  .t-stat-value { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--ink); }
+  .t-stat-sub { font-size: 10px; color: var(--ink3); margin-top: 2px; }
+
+  /* Student ranking table */
+  .ranking-wrap { overflow-x: auto; margin-top: 1rem; }
+  .ranking-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ranking-wrap thead th { text-align: left; padding: 8px 10px; background: var(--surface2); font-weight: 700; font-size: 11px; color: var(--ink2); border-bottom: 1px solid var(--border); }
+  .ranking-wrap tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  .ranking-wrap tbody tr:hover { background: var(--surface2); }
+  .ranking-wrap tbody td { padding: 9px 10px; vertical-align: middle; }
+  .rank-num { font-weight: 700; color: var(--ink3); font-size: 12px; width: 28px; }
+  .rank-num.gold   { color: #c4962d; }
+  .rank-num.silver { color: #888; }
+  .rank-num.bronze { color: #a0522d; }
+  .progress-mini { height: 5px; background: var(--border); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  .progress-mini-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+  .no-data-row td { color: var(--ink3); text-align: center; padding: 2rem; }
+
+  /* Grade comparison row */
+  .grade-compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; margin-bottom: 1.4rem; }
+
+  /* Ranking row clickable */
+  .ranking-wrap tbody tr.clickable { cursor: pointer; }
+  .ranking-wrap tbody tr.clickable:hover { background: #fff5ef; }
+  .row-detail-arrow { color: var(--ink3); font-size: 12px; float: right; }
+
+  /* Student detail modal */
+  .student-detail-modal {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 0; width: 760px; max-width: 96vw;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.22);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .sdm-header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--ink); color: white;
+    padding: 1.2rem 1.6rem; display: flex; align-items: center;
+    justify-content: space-between; gap: 12px; border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .sdm-header h3 { font-size: 17px; font-weight: 700; }
+  .sdm-header .sdm-meta { font-size: 12px; color: rgba(255,255,255,.6); margin-top: 2px; }
+  .sdm-close {
+    background: rgba(255,255,255,.15); border: none; color: white;
+    width: 30px; height: 30px; border-radius: 50%; font-size: 16px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: background .15s;
+  }
+  .sdm-close:hover { background: rgba(255,255,255,.28); }
+  .sdm-body { padding: 1.4rem 1.6rem; }
+  .sdm-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 1.2rem; }
+  .sdm-stat { background: var(--surface2); border-radius: var(--radius-sm); padding: .8rem 1rem; }
+  .sdm-stat-label { font-size: 10px; color: var(--ink3); margin-bottom: 3px; }
+  .sdm-stat-value { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); }
+  .sdm-stat-sub { font-size: 10px; color: var(--ink3); }
+  .sdm-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem; }
+  .sdm-section-title { font-size: 13px; font-weight: 700; color: var(--ink2); margin-bottom: .7rem; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+
+  /* Goals section inside detail */
+  .sdm-goals { display: grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap: 8px; margin-bottom: 1.2rem; }
+  .sdm-goal-card { background: var(--accent-light); border-radius: var(--radius-sm); padding: .8rem; }
+  .sdm-goal-subj { font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+  .sdm-goal-score { font-size: 20px; font-weight: 700; color: var(--ink); }
+  .sdm-goal-cur { font-size: 11px; color: var(--ink2); margin-top: 2px; }
+  .sdm-goal-bar { height: 4px; background: rgba(0,0,0,.1); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .sdm-goal-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+  /* Session history inside detail */
+  .sdm-history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .sdm-history-table thead th { text-align: left; padding: 6px 8px; background: var(--surface2); font-weight: 700; font-size: 11px; color: var(--ink2); border-bottom: 1px solid var(--border); }
+  .sdm-history-table tbody tr { border-bottom: 1px solid var(--border); }
+  .sdm-history-table tbody td { padding: 7px 8px; color: var(--ink); vertical-align: middle; }
+  .sdm-history-table tbody tr:last-child { border-bottom: none; }
+  .sdm-empty { text-align: center; padding: 1.5rem; color: var(--ink3); font-size: 13px; }
+  .sdm-show-more { text-align: center; margin-top: 8px; }
+  .sdm-show-more button { background: none; border: 1px solid var(--border); color: var(--ink2); padding: 5px 16px; border-radius: 20px; font-size: 12px; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all .15s; }
+  .sdm-show-more button:hover { border-color: var(--accent); color: var(--accent); }
+
+  @media (max-width: 700px) {
+    .sdm-stats { grid-template-columns: repeat(2,1fr); }
+    .sdm-charts { grid-template-columns: 1fr; }
+  }
+
+  /* Top bar unlock button */
+  .btn-teacher-lock {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+    color: white; padding: 6px 13px; border-radius: var(--radius-sm);
+    font-size: 13px; cursor: pointer; font-family: 'Noto Sans JP', sans-serif;
+    transition: background .15s; white-space: nowrap;
+  }
+  .btn-teacher-lock:hover { background: rgba(255,255,255,0.22); }
+
+  @media (max-width: 700px) {
+    .t-stats-row { grid-template-columns: repeat(2,1fr); }
+    .grade-compare-grid { grid-template-columns: 1fr; }
+  }
+  /* LOADING OVERLAY */
+  .loading-overlay { position:fixed; inset:0; background:rgba(245,242,237,0.92); z-index:999; display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+  .loading-spinner { width:40px; height:40px; border:3px solid rgba(196,98,45,0.2); border-top-color:#c4622d; border-radius:50%; animation:spin 0.8s linear infinite; }
+  .loading-msg { font-size:14px; color:var(--ink2); }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Academic <span>Record</span></div>
+  <div class="header-controls">
+    <label>クラス：</label>
+    <select id="classSelect" class="hdr-select" onchange="onClassChange()"><option value="">— 選択 —</option></select>
+    <label>生徒：</label>
+    <select id="studentSelect" class="hdr-select"><option value="">— 選択 —</option></select>
+    <button class="btn-hdr secondary" onclick="openImportModal()">📥 Excelから登録</button>
+    <button class="btn-hdr" onclick="openNewStudent()">＋ 手動登録</button>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <button class="tab-btn active" onclick="showTab('log')">📝 学習記録</button>
+  <button class="tab-btn" onclick="showTab('dashboard')">📊 ダッシュボード</button>
+  <button class="tab-btn" onclick="showTab('goals')">🎯 目標</button>
+  <button class="tab-btn" onclick="showTab('history')">📋 履歴</button>
+  <button class="tab-btn" onclick="showTab('students')">👥 生徒一覧</button>
+  <button class="tab-btn" onclick="openTeacherTab()" id="teacherTabBtn" style="display:none;">🔓 担任確認</button>
+</nav>
+
+<div class="main">
+
+  <!-- ===== 学習記録 ===== -->
+  <div id="tab-log" class="section active">
+    <div class="no-student-banner" id="logBanner">生徒を選択または登録してください。</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.4rem;">
+      <div class="card">
+        <div class="card-title">学習セッションを記録</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>日付</label>
+            <input type="date" id="logDate">
+          </div>
+          <div class="form-group">
+            <label>学習時間（分）</label>
+            <input type="number" id="logDuration" min="1" max="600" placeholder="例：90">
+          </div>
+          <div class="form-group">
+            <label>教科</label>
+            <select id="logSubject">
+              <option value="Japanese">国語</option>
+              <option value="Mathematics">数学</option>
+              <option value="English">英語</option>
+              <option value="Science">理科</option>
+              <option value="History">社会</option>
+              <option value="Technology">技術・家庭科</option>
+              <option value="PE">保健体育</option>
+              <option value="Music">音楽</option>
+              <option value="Other">その他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>集中度（1〜5）</label>
+            <input type="number" id="logFocus" min="1" max="5" placeholder="1〜5">
+          </div>
+          <div class="form-group full">
+            <label>学習内容・トピック</label>
+            <textarea id="logContents" placeholder="今日は何を勉強しましたか？"></textarea>
+          </div>
+        </div>
+        <button class="btn-submit" onclick="addSession()">保存する</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">次のテストの目標を設定</div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>テスト名</label>
+            <select id="goalTestName">
+              <option value="">— テストを選択 —</option>
+              <optgroup label="定期テスト">
+                <option value="前期中間テスト">前期中間テスト</option>
+                <option value="前期末テスト">前期末テスト</option>
+                <option value="後期中間テスト">後期中間テスト（1・2年）</option>
+                <option value="学年末テスト">学年末テスト</option>
+              </optgroup>
+              <optgroup label="実力・模擬テスト">
+                <option value="課題テスト">課題テスト</option>
+                <option value="学力テスト">学力テスト</option>
+                <option value="SAGAテスト">SAGAテスト（3年）</option>
+                <option value="全国学力調査">全国学力調査（3年）</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>テスト日</label>
+            <input type="date" id="goalDate">
+          </div>
+          <div class="form-group">
+            <label>合計目標点（任意・点）</label>
+            <input type="number" id="goalTotalScore" min="0" max="800" placeholder="例：400">
+          </div>
+        </div>
+
+        <!-- 教科別目標点 -->
+        <div style="margin-top:1rem;">
+          <div style="font-size:12px; font-weight:600; color:var(--ink2); margin-bottom:8px;">教科別目標点（点）</div>
+          <div id="goalSubjectGrid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+            <div class="form-group">
+              <label style="font-size:11px;">国語</label>
+              <input type="number" class="goal-subj-input" data-subj="Japanese" min="0" max="200" placeholder="点">
+            </div>
+            <div class="form-group">
+              <label style="font-size:11px;">数学</label>
+              <input type="number" class="goal-subj-input" data-subj="Mathematics" min="0" max="200" placeholder="点">
+            </div>
+            <div class="form-group">
+              <label style="font-size:11px;">英語</label>
+              <input type="number" class="goal-subj-input" data-subj="English" min="0" max="200" placeholder="点">
+            </div>
+            <div class="form-group">
+              <label style="font-size:11px;">理科</label>
+              <input type="number" class="goal-subj-input" data-subj="Science" min="0" max="200" placeholder="点">
+            </div>
+            <div class="form-group">
+              <label style="font-size:11px;">社会</label>
+              <input type="number" class="goal-subj-input" data-subj="History" min="0" max="200" placeholder="点">
+            </div>
+            <div class="form-group">
+              <label style="font-size:11px;">技術・家庭</label>
+              <input type="number" class="goal-subj-input" data-subj="Technology" min="0" max="200" placeholder="点">
+            </div>
+            <div class="form-group">
+              <label style="font-size:11px;">保健体育</label>
+              <input type="number" class="goal-subj-input" data-subj="PE" min="0" max="200" placeholder="点">
+            </div>
+            <div class="form-group">
+              <label style="font-size:11px;">音楽</label>
+              <input type="number" class="goal-subj-input" data-subj="Music" min="0" max="200" placeholder="点">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group full" style="margin-top:.8rem;">
+          <label>目標点取得のために（具体的な行動目標）</label>
+          <textarea id="goalDesc" placeholder="例：毎日数学を30分復習する、英単語を1日10個覚える、など" style="min-height:64px;"></textarea>
+        </div>
+        <button class="btn-submit" onclick="addGoal()">目標を保存</button>
+      </div>
+    </div>
+
+    <!-- ===== 行事カレンダー ===== -->
+    <div class="cal-section">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:.8rem;">
+        <div class="cal-section-title">📅 学校行事カレンダー（令和8年度）</div>
+        <div class="cal-month-nav">
+          <button onclick="calPrev()">‹</button>
+          <div class="cal-month-label" id="calMonthLabel"></div>
+          <button onclick="calNext()">›</button>
+        </div>
+      </div>
+      <div class="card" style="padding:1rem;">
+        <div class="cal-grid">
+          <div class="cal-dow sun">日</div>
+          <div class="cal-dow">月</div>
+          <div class="cal-dow">火</div>
+          <div class="cal-dow">水</div>
+          <div class="cal-dow">木</div>
+          <div class="cal-dow">金</div>
+          <div class="cal-dow sat">土</div>
+        </div>
+        <div class="cal-grid" id="calCells" style="margin-top:4px;"></div>
+        <div class="cal-legend">
+          <div class="cal-legend-item"><span class="cal-legend-dot ev-test"></span>テスト・検定</div>
+          <div class="cal-legend-item"><span class="cal-legend-dot ev-event"></span>学校行事</div>
+          <div class="cal-legend-item"><span class="cal-legend-dot ev-holiday"></span>休日・休業</div>
+          <div class="cal-legend-item"><span class="cal-legend-dot ev-health"></span>健康診断</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ダッシュボード ===== -->
+  <div id="tab-dashboard" class="section">
+    <div class="no-student-banner" id="dashBanner">ダッシュボードを表示するには生徒を選択してください。</div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">合計学習時間</div><div class="stat-value" id="statHours">0</div><div class="stat-sub">時間</div></div>
+      <div class="stat-card"><div class="stat-label">セッション数</div><div class="stat-value" id="statSessions">0</div><div class="stat-sub">回</div></div>
+      <div class="stat-card"><div class="stat-label">平均集中度</div><div class="stat-value" id="statFocus">—</div><div class="stat-sub">5点満点</div></div>
+      <div class="stat-card"><div class="stat-label">設定中の目標</div><div class="stat-value" id="statGoals">0</div><div class="stat-sub">件</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="card">
+        <div class="card-title" style="font-size:14px; margin-bottom:.9rem;">日別学習時間（直近14日間）</div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="chartDaily"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="font-size:14px; margin-bottom:.9rem;">教科別学習時間</div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="chartSubject"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="font-size:14px; margin-bottom:.9rem;">週別学習時間（直近8週間）</div>
+      <div class="chart-wrap" style="height:180px;"><canvas id="chartWeekly"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===== 目標 ===== -->
+  <div id="tab-goals" class="section">
+    <div class="no-student-banner" id="goalsBanner">目標を表示するには生徒を選択してください。</div>
+    <div class="goals-grid" id="goalsGrid"></div>
+    <div class="empty-state" id="goalsEmpty" style="display:none;">
+      <p>目標がまだ設定されていません。</p>
+      <small>「学習記録」タブから次のテストの目標を設定しましょう。</small>
+    </div>
+  </div>
+
+  <!-- ===== 履歴 ===== -->
+  <div id="tab-history" class="section">
+    <div class="no-student-banner" id="histBanner">履歴を表示するには生徒を選択してください。</div>
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:10px;">
+        <div class="card-title" style="margin:0;">学習履歴</div>
+        <select id="filterSubject" onchange="renderHistory()" style="font-size:13px; padding:7px 10px;">
+          <option value="all">すべての教科</option>
+          <option value="Japanese">国語</option>
+          <option value="Mathematics">数学</option>
+          <option value="English">英語</option>
+          <option value="Science">理科</option>
+          <option value="History">社会</option>
+          <option value="Technology">技術・家庭科</option>
+          <option value="PE">保健体育</option>
+          <option value="Music">音楽</option>
+          <option value="Other">その他</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>日付</th><th>教科</th><th>学習時間</th><th>集中度</th><th>学習内容</th><th></th></tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="historyEmpty" style="display:none;">
+        <p>学習セッションがまだ記録されていません。</p>
+        <small>「学習記録」タブから最初のセッションを追加しましょう。</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 生徒一覧 ===== -->
+  <div id="tab-students" class="section">
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:10px;">
+        <div class="card-title" style="margin:0;">登録済み生徒一覧</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-submit" style="margin:0; padding:8px 16px; font-size:13px;" onclick="openImportModal()">📥 Excelから登録</button>
+          <button class="btn-submit" style="margin:0; padding:8px 16px; font-size:13px; background:var(--ink);" onclick="openNewStudent()">＋ 手動登録</button>
+        </div>
+      </div>
+      <!-- class filter tabs -->
+      <div class="class-filter-wrap" id="classFilterWrap">
+        <button class="class-filter-btn active" onclick="filterStudentList('all', this)">すべて</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>クラス</th><th>氏名</th><th>生徒番号</th><th>メモ</th><th>セッション数</th><th></th></tr></thead>
+          <tbody id="studentListBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="studentListEmpty" style="display:none;">
+        <p>生徒がまだ登録されていません。</p>
+        <small>Excelシートから一括登録するか、手動で登録してください。</small>
+      </div>
+    </div>
+
+    <!-- 担任一覧 -->
+    <div class="card" id="teacherListCard" style="margin-top:1.2rem; display:none;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.9rem;">
+        <div class="card-title" style="margin:0;">👨‍🏫 登録済み担任一覧</div>
+        <span style="font-size:12px;color:var(--ink3);">クラス選択→担任名選択で担任確認ページへ</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>グループ名</th><th>担任名</th><th>メモ</th><th></th></tr></thead>
+          <tbody id="teacherListBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 担任確認ページ ===== -->
+  <div id="tab-teacher" class="section">
+    <div class="teacher-header">
+      <h2>👨‍🏫 担任確認ページ</h2>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span style="font-size:12px;color:var(--ink3);" id="teacherLoginLabel"></span>
+        <button class="btn-danger" style="font-size:12px;" onclick="teacherLogout()">ログアウト</button>
+        <button class="btn-submit" style="margin:0;padding:7px 14px;font-size:12px;background:var(--ink2);" onclick="openChangePw()">🔑 パスワード変更</button>
+      </div>
+    </div>
+
+    <!-- クラス選択タブ -->
+    <div class="teacher-class-tabs" id="teacherClassTabs"></div>
+
+    <!-- クラス統計 -->
+    <div class="t-stats-row" id="tStatsRow">
+      <div class="t-stat-card"><div class="t-stat-label">クラス生徒数</div><div class="t-stat-value" id="tStatCount">—</div><div class="t-stat-sub">名</div></div>
+      <div class="t-stat-card"><div class="t-stat-label">平均学習時間</div><div class="t-stat-value" id="tStatAvgHours">—</div><div class="t-stat-sub">時間 / 生徒</div></div>
+      <div class="t-stat-card"><div class="t-stat-label">合計学習時間</div><div class="t-stat-value" id="tStatTotalHours">—</div><div class="t-stat-sub">時間</div></div>
+      <div class="t-stat-card"><div class="t-stat-label">平均集中度</div><div class="t-stat-value" id="tStatAvgFocus">—</div><div class="t-stat-sub">5点満点</div></div>
+      <div class="t-stat-card"><div class="t-stat-label">目標設定率</div><div class="t-stat-value" id="tStatGoalRate">—</div><div class="t-stat-sub">%</div></div>
+    </div>
+
+    <!-- グラフ：週別推移 & 教科別 -->
+    <div class="grade-compare-grid">
+      <div class="card">
+        <div class="card-title" style="font-size:14px;margin-bottom:.9rem;">クラス週別学習時間（直近8週）</div>
+        <div style="position:relative;height:200px;"><canvas id="tChartWeekly"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="font-size:14px;margin-bottom:.9rem;">クラス教科別学習時間</div>
+        <div style="position:relative;height:200px;"><canvas id="tChartSubject"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 学年間比較 -->
+    <div class="card" style="margin-bottom:1.4rem;">
+      <div class="card-title" style="font-size:14px;margin-bottom:.9rem;">📊 学年・クラス別 平均学習時間の比較</div>
+      <div style="position:relative;height:220px;"><canvas id="tChartGrade"></canvas></div>
+    </div>
+
+    <!-- 生徒ランキング -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+        <div class="card-title" style="margin:0;">生徒別学習時間ランキング</div>
+        <select id="tRankSort" onchange="renderTeacherView()" style="font-size:13px;padding:6px 10px;">
+          <option value="hours">学習時間順</option>
+          <option value="sessions">セッション数順</option>
+          <option value="focus">平均集中度順</option>
+          <option value="goals">目標数順</option>
+        </select>
+      </div>
+      <div class="ranking-wrap">
+        <table>
+          <thead><tr><th style="width:36px;">順位</th><th>氏名</th><th>学習時間</th><th>セッション数</th><th>平均集中度</th><th>目標数</th><th>学習時間グラフ</th></tr></thead>
+          <tbody id="tRankingBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== 生徒詳細モーダル（担任用） ===== -->
+<div class="modal-overlay" id="studentDetailModal" style="align-items:center;">
+  <div class="student-detail-modal">
+    <div class="sdm-header">
+      <div>
+        <h3 id="sdmName">—</h3>
+        <div class="sdm-meta" id="sdmMeta"></div>
+      </div>
+      <button class="sdm-close" onclick="closeModal('studentDetailModal')">✕</button>
+    </div>
+    <div class="sdm-body">
+      <!-- サマリー統計 -->
+      <div class="sdm-stats">
+        <div class="sdm-stat"><div class="sdm-stat-label">合計学習時間</div><div class="sdm-stat-value" id="sdmHours">—</div><div class="sdm-stat-sub">時間</div></div>
+        <div class="sdm-stat"><div class="sdm-stat-label">セッション数</div><div class="sdm-stat-value" id="sdmSessions">—</div><div class="sdm-stat-sub">回</div></div>
+        <div class="sdm-stat"><div class="sdm-stat-label">平均集中度</div><div class="sdm-stat-value" id="sdmFocus">—</div><div class="sdm-stat-sub">5点満点</div></div>
+        <div class="sdm-stat"><div class="sdm-stat-label">最終記録日</div><div class="sdm-stat-value" id="sdmLastDate" style="font-size:16px;margin-top:4px;">—</div><div class="sdm-stat-sub"></div></div>
+      </div>
+
+      <!-- グラフ：週別 & 教科別 -->
+      <div class="sdm-charts">
+        <div>
+          <div class="sdm-section-title">週別学習時間（直近8週）</div>
+          <div style="position:relative;height:160px;"><canvas id="sdmChartWeekly"></canvas></div>
+        </div>
+        <div>
+          <div class="sdm-section-title">教科別学習時間</div>
+          <div style="position:relative;height:160px;"><canvas id="sdmChartSubject"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 目標一覧 -->
+      <div class="sdm-section-title">テスト目標</div>
+      <div class="sdm-goals" id="sdmGoals"></div>
+
+      <!-- 学習履歴 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem;padding-bottom:4px;border-bottom:1px solid var(--border);">
+        <div class="sdm-section-title" style="margin:0;border:none;padding:0;">学習履歴</div>
+        <select id="sdmFilterSubject" onchange="renderSdmHistory()" style="font-size:12px;padding:4px 8px;">
+          <option value="all">すべての教科</option>
+          <option value="Japanese">国語</option>
+          <option value="Mathematics">数学</option>
+          <option value="English">英語</option>
+          <option value="Science">理科</option>
+          <option value="History">社会</option>
+          <option value="Technology">技術・家庭科</option>
+          <option value="PE">保健体育</option>
+          <option value="Music">音楽</option>
+          <option value="Other">その他</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="sdm-history-table">
+          <thead><tr><th>日付</th><th>教科</th><th>時間</th><th>集中度</th><th>学習内容</th></tr></thead>
+          <tbody id="sdmHistoryBody"></tbody>
+        </table>
+      </div>
+      <div id="sdmHistoryEmpty" class="sdm-empty" style="display:none;">学習履歴がありません。</div>
+      <div class="sdm-show-more" id="sdmShowMoreWrap" style="display:none;">
+        <button onclick="sdmShowMore()">さらに表示する</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="teacher-lock" id="teacherLockScreen" style="display:none;">
+  <div class="teacher-lock-card">
+    <div style="font-family:'DM Serif Display',serif; font-size:18px; color:var(--ink); margin-bottom:.5rem;">Academic <span style="color:var(--accent);">Record</span></div>
+    <div class="lock-icon">🔐</div>
+    <h2>担任確認ページ</h2>
+    <p>このページは担任専用です。<br>パスワードを入力してください。<br><small style="color:var(--ink3);">初期パスワード：<strong>teacher123</strong></small></p>
+    <input type="password" id="lockPwInput" placeholder="パスワード" onkeydown="if(event.key==='Enter')doUnlock()">
+    <div class="lock-error" id="lockError"></div>
+    <button class="btn-unlock" onclick="doUnlock()">ログイン</button>
+    <br>
+    <button class="btn-change-pw" onclick="openChangePwFromLock()">パスワードを変更する</button>
+  </div>
+</div>
+
+<!-- ===== パスワード変更モーダル ===== -->
+<div class="modal-overlay" id="changePwModal">
+  <div class="modal">
+    <h3>🔑 パスワード変更</h3>
+    <div class="form-group" style="margin-bottom:.9rem;">
+      <label>現在のパスワード</label>
+      <input type="password" id="pwOld" style="width:100%;" placeholder="現在のパスワード">
+    </div>
+    <div class="form-group" style="margin-bottom:.9rem;">
+      <label>新しいパスワード（4文字以上）</label>
+      <input type="password" id="pwNew" style="width:100%;" placeholder="新しいパスワード">
+    </div>
+    <div class="form-group" style="margin-bottom:.9rem;">
+      <label>新しいパスワード（確認）</label>
+      <input type="password" id="pwNew2" style="width:100%;" placeholder="もう一度入力">
+    </div>
+    <div class="lock-error" id="pwChangeError" style="text-align:left; min-height:16px;"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('changePwModal')">キャンセル</button>
+      <button class="btn-submit" onclick="doChangePw()">変更する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 手動登録モーダル ===== -->
+<div class="modal-overlay" id="newStudentModal">
+  <div class="modal">
+    <h3>生徒を手動登録</h3>
+    <div class="form-group" style="margin-bottom:.9rem;">
+      <label>クラス ✱</label>
+      <input type="text" id="newStudentClass" placeholder="例：1年A組" style="width:100%;" list="classList">
+      <datalist id="classList"></datalist>
+    </div>
+    <div class="form-group" style="margin-bottom:.9rem;">
+      <label>氏名 ✱</label>
+      <input type="text" id="newStudentName" placeholder="例：田中 ゆき" style="width:100%;">
+    </div>
+    <div class="form-group" style="margin-bottom:.9rem;">
+      <label>生徒番号（任意）</label>
+      <input type="text" id="newStudentId" placeholder="例：S001" style="width:100%;">
+    </div>
+    <div class="form-group" style="margin-bottom:.9rem;">
+      <label>メモ（任意）</label>
+      <input type="text" id="newStudentNote" placeholder="任意メモ" style="width:100%;">
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:.9rem; padding:10px 12px; background:#e6f1fb; border-radius:var(--radius-sm);">
+      <input type="checkbox" id="newStudentIsTeacher" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent2);">
+      <label for="newStudentIsTeacher" style="font-size:13px; color:#185fa5; cursor:pointer; font-weight:500;">👨‍🏫 担任として登録する（生徒セレクトの担任グループに表示）</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('newStudentModal')">キャンセル</button>
+      <button class="btn-submit" onclick="createStudent()">登録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Excelインポートモーダル ===== -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <h3>📥 Excelから生徒を一括登録</h3>
+    <p style="font-size:13px; color:var(--ink2); margin-bottom:1rem; line-height:1.6;">
+      テンプレートに従って <strong>クラス・氏名・生徒番号</strong> を入力したExcelファイル（.xlsx）を読み込みます。<br>
+      同名の生徒は重複登録されません。
+    </p>
+
+    <div style="margin-bottom:.8rem;">
+      <div style="font-size:12px; color:var(--ink3); margin-bottom:6px;">列の対応（ヘッダー行は自動スキップ）</div>
+      <div style="display:grid; grid-template-columns: repeat(5,1fr); gap:6px; font-size:12px;">
+        <div style="background:var(--surface2); padding:6px 8px; border-radius:6px; text-align:center;"><div style="font-weight:700; color:var(--accent);">A列</div><div>クラス</div></div>
+        <div style="background:var(--surface2); padding:6px 8px; border-radius:6px; text-align:center;"><div style="font-weight:700; color:var(--accent);">B列</div><div>氏名</div></div>
+        <div style="background:var(--surface2); padding:6px 8px; border-radius:6px; text-align:center;"><div style="font-weight:700;">C列</div><div>生徒番号</div></div>
+        <div style="background:var(--surface2); padding:6px 8px; border-radius:6px; text-align:center;"><div style="font-weight:700;">D列</div><div>メモ</div></div>
+        <div style="background:#dfe8f5; padding:6px 8px; border-radius:6px; text-align:center; border:1px solid #b5d4f4;"><div style="font-weight:700; color:#185fa5;">E列</div><div style="color:#185fa5;">担任と入力</div><div style="font-size:10px;color:var(--ink3);">担任の場合のみ</div></div>
+      </div>
+      <div style="margin-top:8px; font-size:11px; color:#185fa5; background:#e6f1fb; border-radius:6px; padding:7px 10px;">
+        💡 担任として登録する行は <strong>E列に「担任」</strong> と入力してください。クラス欄に「担任」など任意のグループ名を入れると、生徒セレクトの担任グループに表示されます。
+      </div>
+    </div>
+
+    <div class="import-zone" id="importZone" onclick="document.getElementById('fileInput').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <div class="import-icon">📂</div>
+      <p>クリックまたはドラッグ＆ドロップ</p>
+      <small>対応形式：.xlsx / .xls</small>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;" onchange="onFileSelect(event)">
+    </div>
+
+    <div id="importPreviewArea" style="display:none;">
+      <div id="importCountBadge"></div>
+      <div id="importWarning" style="display:none;" class="import-warning"></div>
+      <div style="font-size:12px; color:var(--ink3); margin: 8px 0 4px;">プレビュー（最大10件）</div>
+      <div class="import-preview" id="importPreview"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('importModal'); resetImport()">キャンセル</button>
+      <button class="btn-submit" id="importConfirmBtn" style="display:none;" onclick="confirmImport()">登録する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-msg" id="loadingMsg">読み込み中…</div>
+</div>
+
+<script type="module">
+// ============================================================
+// Academic Record — Firebase Firestore 対応版
+// ============================================================
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {
+  getFirestore, collection, doc,
+  getDocs, getDoc, setDoc, deleteDoc,
+  query, where, orderBy, onSnapshot, writeBatch
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+// ── Firebase 設定 ──────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBaq0qRcOBXVYM11uP-I5aV8xx_M00tFrI",
+  authDomain: "academic-record-fd7ba.firebaseapp.com",
+  projectId: "academic-record-fd7ba",
+  storageBucket: "academic-record-fd7ba.firebasestorage.app",
+  messagingSenderId: "100892178966",
+  appId: "1:100892178966:web:23ef991729e2d897089337"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// ── ローカルキャッシュ（Firestoreからロード後に保持）────────
+let _students  = [];   // [{ id, cls, name, sid, note, isTeacher }]
+let _sessions  = {};   // { studentId: [session,...] }
+let _goals     = {};   // { studentId: [goal,...] }
+let _teacherPw = 'teacher123';
+let _currentStudentId = sessionStorage.getItem('ar_current') || null;
+let _appReady  = false;
+
+// ── ローディングオーバーレイ ────────────────────────────────
+function showLoading(msg = '読み込み中…') {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('loadingMsg').textContent = msg;
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+// ── 初期ロード ──────────────────────────────────────────────
+async function loadAll() {
+  showLoading('データを読み込み中…');
+  try {
+    // students
+    const sSnap = await getDocs(collection(db, 'students'));
+    _students = sSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // settings (teacher password)
+    try {
+      const pwDoc = await getDoc(doc(db, 'settings', 'teacher'));
+      if (pwDoc.exists()) _teacherPw = pwDoc.data().password || 'teacher123';
+    } catch(e) {}
+
+    // sessions & goals for all students (lazy: load on demand)
+    _sessions = {};
+    _goals = {};
+
+    _appReady = true;
+    rebuildClassColors();
+    populateClassSelect();
+    populateStudentSelect('');
+
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('logDate').value = today;
+    document.getElementById('goalDate').value = today;
+
+    if (_currentStudentId) {
+      const st = _students.find(s => s.id === _currentStudentId);
+      if (st) {
+        document.getElementById('classSelect').value = st.cls || '';
+        populateStudentSelect(st.cls || '');
+        document.getElementById('studentSelect').value = _currentStudentId;
+        await loadStudentData(_currentStudentId);
+        refreshAll();
+        hideBanners();
+      } else {
+        _currentStudentId = null;
+        sessionStorage.removeItem('ar_current');
+        showBanners();
+      }
+    } else {
+      showBanners();
+    }
+    renderStudentList('all');
+    calInit();
+  } catch(e) {
+    console.error(e);
+    alert('Firebaseへの接続に失敗しました。インターネット接続とFirebase設定を確認してください。\n\n' + e.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ── 生徒データをFirestoreからロード（遅延読み込み）──────────
+async function loadStudentData(sid) {
+  if (_sessions[sid] && _goals[sid]) return; // キャッシュあり
+  const [sessSnap, goalSnap] = await Promise.all([
+    getDocs(query(collection(db, 'sessions'), where('studentId', '==', sid), orderBy('date', 'desc'))),
+    getDocs(query(collection(db, 'goals'),    where('studentId', '==', sid)))
+  ]);
+  _sessions[sid] = sessSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  _goals[sid]    = goalSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ── データアクセサ（同期・キャッシュから）──────────────────
+function getStudents()          { return _students; }
+function getCurrentStudent()    { return _currentStudentId; }
+function setCurrentStudent(id)  {
+  _currentStudentId = id;
+  if (id) sessionStorage.setItem('ar_current', id);
+  else    sessionStorage.removeItem('ar_current');
+}
+function getStudentData(sid) {
+  return { sessions: _sessions[sid] || [], goals: _goals[sid] || [] };
+}
+
+// ── Firestoreへの保存ヘルパー ────────────────────────────────
+async function saveStudent(s) {
+  const { id, ...data } = s;
+  await setDoc(doc(db, 'students', id), data);
+  const idx = _students.findIndex(x => x.id === id);
+  if (idx >= 0) _students[idx] = s; else _students.push(s);
+}
+async function deleteStudentFromDB(sid) {
+  await deleteDoc(doc(db, 'students', sid));
+  _students = _students.filter(s => s.id !== sid);
+  // sessions & goals
+  const batch = writeBatch(db);
+  const [sSnap, gSnap] = await Promise.all([
+    getDocs(query(collection(db, 'sessions'), where('studentId', '==', sid))),
+    getDocs(query(collection(db, 'goals'),    where('studentId', '==', sid)))
+  ]);
+  sSnap.docs.forEach(d => batch.delete(d.ref));
+  gSnap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+  delete _sessions[sid];
+  delete _goals[sid];
+}
+async function saveSession(sid, session) {
+  const { id, ...data } = session;
+  await setDoc(doc(db, 'sessions', String(id)), { studentId: sid, ...data });
+  if (!_sessions[sid]) _sessions[sid] = [];
+  const idx = _sessions[sid].findIndex(s => s.id === id);
+  if (idx >= 0) _sessions[sid][idx] = session; else _sessions[sid].unshift(session);
+}
+async function deleteSessionFromDB(sid, sessionId) {
+  await deleteDoc(doc(db, 'sessions', String(sessionId)));
+  _sessions[sid] = (_sessions[sid] || []).filter(s => s.id !== sessionId);
+}
+async function saveGoal(sid, goal) {
+  const { id, ...data } = goal;
+  await setDoc(doc(db, 'goals', String(id)), { studentId: sid, ...data });
+  if (!_goals[sid]) _goals[sid] = [];
+  const idx = _goals[sid].findIndex(g => g.id === id);
+  if (idx >= 0) _goals[sid][idx] = goal; else _goals[sid].unshift(goal);
+}
+async function deleteGoalFromDB(sid, goalId) {
+  await deleteDoc(doc(db, 'goals', String(goalId)));
+  _goals[sid] = (_goals[sid] || []).filter(g => g.id !== goalId);
+}
+async function saveTeacherPassword(pw) {
+  await setDoc(doc(db, 'settings', 'teacher'), { password: pw });
+  _teacherPw = pw;
+}
+function getTeacherPw() { return _teacherPw; }
+
+// ── 定数 ────────────────────────────────────────────────────
+const subjectLabels = {
+  Japanese:'国語', Mathematics:'数学', English:'英語', Science:'理科', History:'社会',
+  Technology:'技術・家庭科', PE:'保健体育', Music:'音楽', Other:'その他'
+};
+const badgeClasses = {
+  Japanese:'badge-japanese', Mathematics:'badge-math', English:'badge-english',
+  Science:'badge-science', History:'badge-history',
+  Technology:'badge-tech', PE:'badge-pe', Music:'badge-music', Other:'badge-other'
+};
+const subjOrder = ['Japanese','Mathematics','English','Science','History','Technology','PE','Music'];
+const subjShort  = { Japanese:'国語', Mathematics:'数学', English:'英語', Science:'理科', History:'社会', Technology:'技・家', PE:'保体', Music:'音楽' };
+
+let charts = {};
+let pendingImport = [];
+let classColorMap = {};
+let classColorIdx = 0;
+
+// ── クラスカラー ────────────────────────────────────────────
+function getClassColor(cls) {
+  if (!cls) return 'cc9';
+  if (!classColorMap[cls]) { classColorMap[cls] = 'cc' + (classColorIdx % 10); classColorIdx++; }
+  return classColorMap[cls];
+}
+function rebuildClassColors() {
+  classColorMap = {}; classColorIdx = 0;
+  const classes = [...new Set(_students.map(s => s.cls || '').filter(Boolean))].sort();
+  classes.forEach(c => getClassColor(c));
+}
+
+// ── クラス取得 ───────────────────────────────────────────────
+function getAllClasses() {
+  return [...new Set(_students.filter(s=>!s.isTeacher).map(s => s.cls||'').filter(Boolean))].sort();
+}
+function getAllTeacherClasses() {
+  return [...new Set(_students.filter(s=>s.isTeacher).map(s => s.cls||'').filter(Boolean))].sort();
+}
+
+// ── ヘッダーのクラス選択 ────────────────────────────────────
+function populateClassSelect() {
+  const sel = document.getElementById('classSelect');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">すべて</option>';
+  getAllClasses().forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c; sel.appendChild(opt);
+  });
+  const teacherClasses = getAllTeacherClasses();
+  if (teacherClasses.length) {
+    const sep = document.createElement('option'); sep.disabled = true; sep.textContent = '── 担任 ──'; sel.appendChild(sep);
+    teacherClasses.forEach(c => {
+      const opt = document.createElement('option'); opt.value = c; opt.textContent = '👨‍🏫 ' + c; opt.dataset.isTeacher = 'true'; sel.appendChild(opt);
+    });
+  }
+  if (cur) sel.value = cur;
+}
+
+function onClassChange() {
+  const sel = document.getElementById('classSelect');
+  const cls = sel.value;
+  const selectedOpt = sel.options[sel.selectedIndex];
+  const isTeacherClass = selectedOpt && selectedOpt.dataset.isTeacher === 'true';
+  if (isTeacherClass) { populateTeacherSelect(cls); }
+  else { populateStudentSelect(cls); }
+  document.getElementById('studentSelect').value = '';
+  setCurrentStudent(null); showBanners();
+}
+
+function populateStudentSelect(cls) {
+  const sel = document.getElementById('studentSelect');
+  sel.innerHTML = '<option value="">— 選択 —</option>';
+  let students = _students.filter(s => !s.isTeacher);
+  if (cls) students = students.filter(s => s.cls === cls);
+  students.sort((a, b) => {
+    const aSid = a.sid||'', bSid = b.sid||'';
+    if (aSid && bSid) return aSid.localeCompare(bSid, 'ja', { numeric: true });
+    if (aSid) return -1; if (bSid) return 1;
+    return (a.name||'').localeCompare(b.name||'', 'ja');
+  });
+  students.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id; opt.textContent = (s.sid ? s.sid + '　' : '') + s.name; sel.appendChild(opt);
+  });
+  if (_currentStudentId) sel.value = _currentStudentId;
+  sel.onchange = async () => {
+    const v = sel.value;
+    if (v) {
+      setCurrentStudent(v);
+      showLoading('データを読み込み中…');
+      await loadStudentData(v);
+      hideLoading();
+      refreshAll(); hideBanners();
+    } else { setCurrentStudent(null); showBanners(); }
+  };
+}
+
+function populateTeacherSelect(cls) {
+  const sel = document.getElementById('studentSelect');
+  sel.innerHTML = '<option value="">— 担任を選択 —</option>';
+  const teachers = _students.filter(s => s.isTeacher && s.cls === cls);
+  teachers.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ja'));
+  teachers.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = '__teacher__' + t.id;
+    opt.textContent = '👨‍🏫 ' + t.name + (t.note ? '（' + t.note + '）' : '');
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => {
+    const v = sel.value;
+    if (v && v.startsWith('__teacher__')) { sel.value = ''; openTeacherTabFor(cls); }
+  };
+}
+
+function refreshClassDatalist() {
+  const dl = document.getElementById('classList');
+  dl.innerHTML = '';
+  getAllClasses().forEach(c => { const opt = document.createElement('option'); opt.value = c; dl.appendChild(opt); });
+}
+
+// ── バナー ──────────────────────────────────────────────────
+function showBanners() {
+  ['logBanner','dashBanner','goalsBanner','histBanner'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.classList.add('visible');
+  });
+}
+function hideBanners() {
+  ['logBanner','dashBanner','goalsBanner','histBanner'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.classList.remove('visible');
+  });
+}
+
+function refreshAll() {
+  updateStats(); renderCharts(); renderGoals(); renderHistory();
+  renderStudentList(currentStudentFilter || 'all');
+}
+
+// ── タブ ────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + name + "'")) b.classList.add('active');
+  });
+  if (name === 'dashboard') renderCharts();
+  if (name === 'students') renderStudentList(currentStudentFilter || 'all');
+}
+window.showTab = showTab;
+
+// ── セッション追加 ──────────────────────────────────────────
+async function addSession() {
+  const sid = getCurrentStudent();
+  if (!sid) { toast('先に生徒を選択してください。'); return; }
+  const date = document.getElementById('logDate').value;
+  const dur  = parseInt(document.getElementById('logDuration').value);
+  const subj = document.getElementById('logSubject').value;
+  const focus = parseInt(document.getElementById('logFocus').value);
+  const contents = document.getElementById('logContents').value.trim();
+  if (!date || !dur || dur < 1) { toast('日付と学習時間を入力してください。'); return; }
+  if (focus && (focus < 1 || focus > 5)) { toast('集中度は1〜5で入力してください。'); return; }
+  const session = { id: Date.now(), date, dur, subj, focus: focus || null, contents };
+  showLoading('保存中…');
+  await saveSession(sid, session);
+  hideLoading();
+  document.getElementById('logDuration').value = '';
+  document.getElementById('logFocus').value = '';
+  document.getElementById('logContents').value = '';
+  toast('セッションを保存しました！');
+  refreshAll();
+}
+window.addSession = addSession;
+
+// ── 目標追加 ────────────────────────────────────────────────
+async function addGoal() {
+  const sid = getCurrentStudent();
+  if (!sid) { toast('先に生徒を選択してください。'); return; }
+  const testName = document.getElementById('goalTestName').value;
+  if (!testName) { toast('テスト名を選択してください。'); return; }
+  const date = document.getElementById('goalDate').value;
+  const totalScore = parseInt(document.getElementById('goalTotalScore').value) || null;
+  const desc = document.getElementById('goalDesc').value.trim();
+  const scores = {};
+  document.querySelectorAll('.goal-subj-input').forEach(inp => {
+    const val = parseInt(inp.value);
+    if (!isNaN(val) && val >= 0) scores[inp.dataset.subj] = val;
+  });
+  if (Object.keys(scores).length === 0 && !totalScore) { toast('少なくとも1教科の目標点数を入力してください。'); return; }
+  // 同名テストの旧目標を削除
+  const existing = (_goals[sid] || []).filter(g => g.testName === testName);
+  showLoading('保存中…');
+  for (const g of existing) await deleteGoalFromDB(sid, g.id);
+  const goal = { id: Date.now(), testName, date, totalScore, scores, desc };
+  await saveGoal(sid, goal);
+  hideLoading();
+  document.getElementById('goalTestName').value = '';
+  document.getElementById('goalTotalScore').value = '';
+  document.getElementById('goalDesc').value = '';
+  document.querySelectorAll('.goal-subj-input').forEach(inp => inp.value = '');
+  toast('目標を保存しました！');
+  refreshAll();
+}
+window.addGoal = addGoal;
+
+// ── 統計 ────────────────────────────────────────────────────
+function updateStats() {
+  const sid = getCurrentStudent(); if (!sid) return;
+  const data = getStudentData(sid);
+  const totalMins = data.sessions.reduce((a,s) => a+s.dur, 0);
+  const focuses = data.sessions.filter(s=>s.focus).map(s=>s.focus);
+  const avgFocus = focuses.length ? (focuses.reduce((a,b)=>a+b,0)/focuses.length).toFixed(1) : '—';
+  document.getElementById('statHours').textContent = (totalMins/60).toFixed(1);
+  document.getElementById('statSessions').textContent = data.sessions.length;
+  document.getElementById('statFocus').textContent = avgFocus;
+  document.getElementById('statGoals').textContent = data.goals.length;
+}
+
+// ── チャート ────────────────────────────────────────────────
+function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
+
+function renderCharts() {
+  const sid = getCurrentStudent(); if (!sid) return;
+  const data = getStudentData(sid);
+  renderDailyChart(data.sessions);
+  renderSubjectChart(data.sessions);
+  renderWeeklyChart(data.sessions);
+}
+
+function getLast14Days() {
+  const days = [];
+  for (let i = 13; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); }
+  return days;
+}
+
+function renderDailyChart(sessions) {
+  destroyChart('daily');
+  const days = getLast14Days();
+  const byDay = {}; days.forEach(d => byDay[d]=0);
+  sessions.forEach(s => { if (byDay[s.date]!==undefined) byDay[s.date]+=s.dur; });
+  charts.daily = new Chart(document.getElementById('chartDaily').getContext('2d'), {
+    type:'bar', data:{ labels:days.map(d=>d.slice(5).replace('-','/')), datasets:[{ label:'分', data:days.map(d=>Math.round(byDay[d])), backgroundColor:'#c4622d', borderRadius:4, borderSkipped:false }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ ticks:{ font:{size:10}, color:'#9a9590', maxRotation:45, autoSkip:false }, grid:{ display:false } }, y:{ ticks:{ font:{size:10}, color:'#9a9590' }, grid:{ color:'rgba(0,0,0,0.06)' }, title:{ display:true, text:'分', color:'#9a9590', font:{size:10} } } } }
+  });
+}
+
+function renderSubjectChart(sessions) {
+  destroyChart('subject');
+  const subjects = ['Japanese','Mathematics','English','Science','History','Technology','PE','Music','Other'];
+  const colors   = ['#7c4dab','#2d6bc4','#c4622d','#2d8c5a','#c4962d','#0b8c7a','#c42d6e','#d47b00','#9a9590'];
+  const bySubj = {}; subjects.forEach(s => bySubj[s]=0);
+  sessions.forEach(s => { bySubj[s.subj]=(bySubj[s.subj]||0)+s.dur; });
+  const nonZero = subjects.map((s,i)=>({ s, v:Math.round(bySubj[s]), c:colors[i] })).filter(x=>x.v>0);
+  charts.subject = new Chart(document.getElementById('chartSubject').getContext('2d'), {
+    type:'doughnut', data:{ labels:nonZero.map(x=>subjectLabels[x.s]||x.s), datasets:[{ data:nonZero.map(x=>x.v), backgroundColor:nonZero.map(x=>x.c), borderWidth:2, borderColor:'#fff' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ font:{size:10}, color:'#5a5550', boxWidth:10, padding:6 } }, tooltip:{ callbacks:{ label:ctx=>' '+ctx.label+'：'+ctx.parsed+'分' } } } }
+  });
+}
+
+function renderWeeklyChart(sessions) {
+  destroyChart('weekly');
+  const weeks = [];
+  for (let i=7;i>=0;i--) { const start=new Date(); start.setDate(start.getDate()-i*7-start.getDay()); const end=new Date(start); end.setDate(end.getDate()+6); weeks.push({ label:start.toISOString().slice(5,10).replace('-','/'), start:start.toISOString().slice(0,10), end:end.toISOString().slice(0,10) }); }
+  const vals = weeks.map(w=>Math.round(sessions.filter(s=>s.date>=w.start&&s.date<=w.end).reduce((a,s)=>a+s.dur,0)/60*10)/10);
+  charts.weekly = new Chart(document.getElementById('chartWeekly').getContext('2d'), {
+    type:'line', data:{ labels:weeks.map(w=>w.label), datasets:[{ label:'時間', data:vals, borderColor:'#2d6bc4', backgroundColor:'rgba(45,107,196,0.08)', fill:true, tension:0.35, pointRadius:4, pointBackgroundColor:'#2d6bc4', borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ ticks:{ font:{size:10}, color:'#9a9590' }, grid:{ display:false } }, y:{ ticks:{ font:{size:10}, color:'#9a9590' }, grid:{ color:'rgba(0,0,0,0.06)' }, title:{ display:true, text:'時間', color:'#9a9590', font:{size:10} } } } }
+  });
+}
+
+// ── 目標 ────────────────────────────────────────────────────
+function renderGoals() {
+  const sid = getCurrentStudent();
+  const grid = document.getElementById('goalsGrid');
+  const empty = document.getElementById('goalsEmpty');
+  grid.innerHTML = '';
+  if (!sid) { empty.style.display='none'; return; }
+  const data = getStudentData(sid);
+  if (!data.goals.length) { empty.style.display='block'; return; }
+  empty.style.display='none';
+  data.goals.forEach(g => buildGoalCard(g, grid));
+}
+
+function buildGoalCard(g, container) {
+  const daysLeft = g.date ? Math.ceil((new Date(g.date)-new Date())/86400000) : null;
+  let daysBadge = '';
+  if (daysLeft!==null) {
+    if (daysLeft<0) daysBadge=`<span class="goal-days-badge done">テスト済み</span>`;
+    else if (daysLeft<=7) daysBadge=`<span class="goal-days-badge urgent">あと${daysLeft}日</span>`;
+    else daysBadge=`<span class="goal-days-badge normal">あと${daysLeft}日</span>`;
+  }
+  const scores = g.scores||{};
+  const scoreItems = subjOrder.map(s => {
+    if (scores[s]===undefined) return '';
+    return `<div class="goal-score-item"><div class="goal-score-subj">${subjShort[s]}</div><div class="goal-score-val">${scores[s]}<span class="goal-score-unit">点</span></div></div>`;
+  }).join('');
+  const totalRow = g.totalScore ? `<div class="goal-total-row">合計目標：<span class="goal-total-num">${g.totalScore}</span><span style="font-size:12px;color:var(--ink3);">点</span></div>` : '';
+  const actionRow = g.desc ? `<div class="goal-action-text">🎯 ${g.desc}</div>` : '';
+  const div = document.createElement('div'); div.className='goal-card';
+  div.innerHTML=`<div class="goal-card-header"><div><div class="goal-test-name">${g.testName||'目標'}</div><div class="goal-test-date">${g.date||''}</div></div>${daysBadge}</div>${scoreItems?`<div class="goal-scores-grid">${scoreItems}</div>`:''}${totalRow}${actionRow}<div style="display:flex;justify-content:flex-end;margin-top:6px;"><button class="btn-danger" onclick="window.deleteGoal('${g.id}','${getCurrentStudent()}')">削除</button></div>`;
+  container.appendChild(div);
+}
+
+window.deleteGoal = async (gid, sid) => {
+  if (!sid) return;
+  showLoading('削除中…');
+  await deleteGoalFromDB(sid, gid);
+  hideLoading();
+  renderGoals(); updateStats(); toast('目標を削除しました。');
+};
+
+// ── 履歴 ────────────────────────────────────────────────────
+function renderHistory() {
+  const sid = getCurrentStudent();
+  const tbody = document.getElementById('historyBody');
+  const empty = document.getElementById('historyEmpty');
+  const filter = document.getElementById('filterSubject').value;
+  tbody.innerHTML = '';
+  if (!sid) { empty.style.display='none'; return; }
+  const data = getStudentData(sid);
+  let sessions = [...data.sessions].sort((a,b)=>b.date.localeCompare(a.date));
+  if (filter!=='all') sessions=sessions.filter(s=>s.subj===filter);
+  if (!sessions.length) { empty.style.display='block'; return; }
+  empty.style.display='none';
+  sessions.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML=`<td>${s.date}</td><td><span class="badge ${badgeClasses[s.subj]||'badge-other'}">${subjectLabels[s.subj]||s.subj}</span></td><td>${s.dur}分</td><td>${s.focus?'★'.repeat(s.focus)+'☆'.repeat(5-s.focus):'—'}</td><td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2);">${s.contents||'—'}</td><td><button class="btn-danger" onclick="window.deleteSession('${s.id}','${sid}')">削除</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+window.renderHistory = renderHistory;
+
+window.deleteSession = async (sessionId, sid) => {
+  if (!sid) return;
+  showLoading('削除中…');
+  await deleteSessionFromDB(sid, sessionId);
+  hideLoading();
+  refreshAll(); toast('セッションを削除しました。');
+};
+
+// ── 生徒一覧 ────────────────────────────────────────────────
+let currentStudentFilter = 'all';
+
+function renderStudentList(cls) {
+  currentStudentFilter = cls;
+  const tbody = document.getElementById('studentListBody');
+  const empty = document.getElementById('studentListEmpty');
+  tbody.innerHTML = '';
+  let students = _students.filter(s => !s.isTeacher);
+  if (cls!=='all') students=students.filter(s=>s.cls===cls);
+  students.sort((a,b) => {
+    const clsCmp=(a.cls||'').localeCompare(b.cls||'','ja',{numeric:true}); if (clsCmp!==0) return clsCmp;
+    const aSid=a.sid||'', bSid=b.sid||'';
+    if (aSid&&bSid) return aSid.localeCompare(bSid,'ja',{numeric:true});
+    if (aSid) return -1; if (bSid) return 1;
+    return (a.name||'').localeCompare(b.name||'','ja');
+  });
+  const wrap = document.getElementById('classFilterWrap');
+  wrap.innerHTML=`<button class="class-filter-btn ${cls==='all'?'active':''}" onclick="filterStudentList('all',this)">すべて</button>`;
+  getAllClasses().forEach(c => {
+    const btn=document.createElement('button'); btn.className='class-filter-btn'+(cls===c?' active':''); btn.onclick=function(){filterStudentList(c,this);}; btn.innerHTML=`<span class="class-label-badge ${getClassColor(c)}">${c}</span>`; wrap.appendChild(btn);
+  });
+  if (!students.length) { empty.style.display='block'; }
+  else {
+    empty.style.display='none';
+    students.forEach(s => {
+      const sessionCount = (_sessions[s.id]||[]).length;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td><span class="class-label-badge ${getClassColor(s.cls||'')}">${s.cls||'—'}</span></td><td style="font-weight:500;">${s.name}</td><td style="color:var(--ink3);font-size:12px;">${s.sid||'—'}</td><td style="color:var(--ink3);font-size:12px;">${s.note||'—'}</td><td style="text-align:center;">${sessionCount}</td><td><button class="btn-danger" onclick="window.deleteStudentConfirm('${s.id}')">削除</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  renderTeacherList();
+}
+
+function filterStudentList(cls, btn) {
+  document.querySelectorAll('.class-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderStudentList(cls);
+}
+window.filterStudentList = filterStudentList;
+
+function renderTeacherList() {
+  const teachers = _students.filter(s=>s.isTeacher);
+  const card = document.getElementById('teacherListCard');
+  const tbody = document.getElementById('teacherListBody');
+  if (!teachers.length) { card.style.display='none'; return; }
+  card.style.display=''; tbody.innerHTML='';
+  teachers.sort((a,b)=>(a.cls||'').localeCompare(b.cls||'','ja')||(a.name||'').localeCompare(b.name||'','ja'));
+  teachers.forEach(t => {
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><span class="class-label-badge cc4" style="font-size:11px;">${t.cls||'—'}</span></td><td style="font-weight:600;">👨‍🏫 ${t.name}</td><td style="color:var(--ink3);font-size:12px;">${t.note||'—'}</td><td><button class="btn-danger" onclick="window.deleteStudentConfirm('${t.id}')">削除</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+window.deleteStudentConfirm = async (sid) => {
+  const s = _students.find(x=>x.id===sid); if (!s) return;
+  if (!confirm(`「${s.name}」を削除しますか？\n学習データもすべて削除されます。`)) return;
+  showLoading('削除中…');
+  await deleteStudentFromDB(sid);
+  if (getCurrentStudent()===sid) { setCurrentStudent(null); showBanners(); }
+  hideLoading();
+  rebuildClassColors(); populateClassSelect();
+  populateStudentSelect(document.getElementById('classSelect').value);
+  renderStudentList(currentStudentFilter);
+  toast('生徒を削除しました。');
+};
+
+// ── 手動登録 ────────────────────────────────────────────────
+function openNewStudent() { refreshClassDatalist(); document.getElementById('newStudentModal').classList.add('open'); document.getElementById('newStudentName').focus(); }
+window.openNewStudent = openNewStudent;
+
+async function createStudentEntry(cls, name, sid, note, isTeacher) {
+  const isManual = (cls===undefined);
+  if (isManual) {
+    cls = document.getElementById('newStudentClass').value.trim();
+    name = document.getElementById('newStudentName').value.trim();
+    sid = document.getElementById('newStudentId').value.trim();
+    note = document.getElementById('newStudentNote').value.trim();
+    isTeacher = document.getElementById('newStudentIsTeacher').checked;
+  }
+  if (!name) { if (isManual) toast('氏名を入力してください。'); return null; }
+  const id = 'st_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  const s = { id, cls:cls||'', name, sid:sid||'', note:note||'', isTeacher:!!isTeacher };
+  await saveStudent(s);
+  if (isManual) {
+    ['newStudentClass','newStudentName','newStudentId','newStudentNote'].forEach(k=>document.getElementById(k).value='');
+    document.getElementById('newStudentIsTeacher').checked=false;
+    closeModal('newStudentModal');
+    rebuildClassColors(); populateClassSelect();
+    populateStudentSelect(document.getElementById('classSelect').value);
+    renderStudentList(currentStudentFilter);
+    toast('生徒を登録しました！');
+  }
+  return id;
+}
+
+async function createStudent_manual() {
+  showLoading('登録中…');
+  await createStudentEntry(undefined);
+  hideLoading();
+}
+window.createStudent_manual = createStudent_manual;
+
+// ── Excel インポート ─────────────────────────────────────────
+function openImportModal() { resetImport(); document.getElementById('importModal').classList.add('open'); }
+window.openImportModal = openImportModal;
+
+function resetImport() {
+  pendingImport=[];
+  document.getElementById('importPreviewArea').style.display='none';
+  document.getElementById('importConfirmBtn').style.display='none';
+  document.getElementById('importZone').innerHTML=`<div class="import-icon">📂</div><p>クリックまたはドラッグ＆ドロップ</p><small>対応形式：.xlsx / .xls</small><input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;" onchange="onFileSelect(event)">`;
+}
+window.resetImport = resetImport;
+window.onDragOver = e => { e.preventDefault(); document.getElementById('importZone').classList.add('drag'); };
+window.onDragLeave = e => { document.getElementById('importZone').classList.remove('drag'); };
+window.onDrop = e => { e.preventDefault(); document.getElementById('importZone').classList.remove('drag'); const f=e.dataTransfer.files[0]; if(f) processExcelFile(f); };
+window.onFileSelect = e => { const f=e.target.files[0]; if(f) processExcelFile(f); };
+
+function processExcelFile(file) {
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try {
+      const wb=XLSX.read(e.target.result,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      let startRow=0;
+      const hw=['クラス','氏名','生徒','class','name','student','ふりがな','備考','メモ','note'];
+      for(let i=0;i<Math.min(rows.length,6);i++){if(hw.some(w=>rows[i].join('').toLowerCase().includes(w))){startRow=i+1;}}
+      const existingKeys=new Set(_students.map(s=>(s.cls||')+'||'+s.name)));
+      const parsed=[],dupes=[];
+      for(let i=startRow;i<rows.length;i++){
+        const row=rows[i];
+        const cls=String(row[0]||'').trim(),name=String(row[1]||'').trim(),sid=String(row[2]||'').trim(),note=String(row[3]||'').trim(),role=String(row[4]||'').trim();
+        const isTeacher=role==='担任';
+        if(!name) continue;
+        const key=(cls||'')+'||'+name;
+        if(existingKeys.has(key)){dupes.push(name);continue;}
+        parsed.push({cls,name,sid,note,isTeacher}); existingKeys.add(key);
+      }
+      pendingImport=parsed; showImportPreview(parsed,dupes);
+    } catch(err){toast('ファイルの読み込みに失敗しました。');}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showImportPreview(parsed,dupes){
+  const area=document.getElementById('importPreviewArea');
+  document.getElementById('importCountBadge').innerHTML=`<span class="import-count">${parsed.length}名を登録できます</span>`;
+  area.style.display='block';
+  const warn=document.getElementById('importWarning');
+  if(dupes.length){warn.style.display='block';warn.textContent=`${dupes.length}名はスキップされます：${dupes.slice(0,5).join('、')}${dupes.length>5?'…':''}`;}
+  else warn.style.display='none';
+  const preview=document.getElementById('importPreview'); preview.innerHTML='';
+  parsed.slice(0,10).forEach(s=>{
+    const div=document.createElement('div'); div.className='preview-row';
+    div.innerHTML=`<span class="class-label-badge ${getClassColor(s.cls)} preview-class">${s.cls||'クラスなし'}</span><span class="preview-name">${s.name}</span><span class="preview-id">${s.sid||''}</span>`;
+    preview.appendChild(div);
+  });
+  if(parsed.length>10){const m=document.createElement('div');m.style.cssText='text-align:center;font-size:12px;color:var(--ink3);padding:6px 0;';m.textContent=`…他 ${parsed.length-10} 名`;preview.appendChild(m);}
+  document.getElementById('importConfirmBtn').style.display=parsed.length>0?'block':'none';
+}
+
+async function confirmImport(){
+  if(!pendingImport.length) return;
+  showLoading(`${pendingImport.length}名を登録中…`);
+  for(const s of pendingImport) await createStudentEntry(s.cls,s.name,s.sid,s.note,s.isTeacher);
+  const count=pendingImport.length; pendingImport=[];
+  rebuildClassColors(); populateClassSelect();
+  populateStudentSelect(document.getElementById('classSelect').value);
+  renderStudentList(currentStudentFilter);
+  hideLoading(); closeModal('importModal'); resetImport();
+  toast(`${count}名の生徒を登録しました！`);
+}
+window.confirmImport=confirmImport;
+
+// ── モーダル ────────────────────────────────────────────────
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+window.closeModal=closeModal;
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',function(e){if(e.target===this){closeModal(this.id);if(this.id==='importModal')resetImport();}});
+});
+
+// ── トースト ────────────────────────────────────────────────
+function toast(msg){
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ── 担任認証 ────────────────────────────────────────────────
+let teacherUnlocked=false, teacherCurrentClass='all', teacherEntryClass=null;
+let tCharts={};
+
+function openTeacherTabFor(cls){
+  teacherEntryClass=cls;
+  if(teacherUnlocked){activateTeacherTab(cls);}
+  else{
+    document.getElementById('teacherLockScreen').style.display='flex';
+    document.getElementById('lockPwInput').value=''; document.getElementById('lockError').textContent='';
+    setTimeout(()=>document.getElementById('lockPwInput').focus(),50);
+  }
+}
+window.openTeacherTabFor=openTeacherTabFor;
+
+function doUnlock(){
+  const val=document.getElementById('lockPwInput').value;
+  if(val===getTeacherPw()){
+    teacherUnlocked=true;
+    document.getElementById('teacherLockScreen').style.display='none';
+    document.getElementById('lockError').textContent='';
+    activateTeacherTab(teacherEntryClass);
+  } else {
+    document.getElementById('lockError').textContent='パスワードが違います。';
+    document.getElementById('lockPwInput').select();
+  }
+}
+window.doUnlock=doUnlock;
+
+async function activateTeacherTab(entryClass){
+  // すべての生徒データをプリロード
+  showLoading('担任ページを読み込み中…');
+  const allStudents=_students.filter(s=>!s.isTeacher);
+  for(const s of allStudents) await loadStudentData(s.id);
+  hideLoading();
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-teacher').classList.add('active');
+  const btn=document.getElementById('teacherTabBtn'); btn.style.display=''; btn.classList.add('active'); btn.textContent='🔓 担任確認';
+  document.getElementById('teacherLoginLabel').textContent='担任としてログイン中';
+  buildTeacherClassTabs(entryClass);
+  if(entryClass) teacherCurrentClass=entryClass;
+  renderTeacherView();
+}
+
+function teacherLogout(){
+  teacherUnlocked=false; teacherEntryClass=null;
+  const btn=document.getElementById('teacherTabBtn'); btn.style.display='none'; btn.textContent='🔒 担任確認';
+  document.getElementById('classSelect').value=''; populateStudentSelect('');
+  showTab('log'); toast('ログアウトしました。');
+}
+window.teacherLogout=teacherLogout;
+
+function openChangePw(){
+  ['pwOld','pwNew','pwNew2'].forEach(k=>document.getElementById(k).value='');
+  document.getElementById('pwChangeError').textContent='';
+  document.getElementById('changePwModal').classList.add('open');
+}
+window.openChangePw=openChangePw;
+
+function openChangePwFromLock(){document.getElementById('teacherLockScreen').style.display='none';openChangePw();}
+window.openChangePwFromLock=openChangePwFromLock;
+
+async function doChangePw(){
+  const old=document.getElementById('pwOld').value;
+  const nw=document.getElementById('pwNew').value;
+  const nw2=document.getElementById('pwNew2').value;
+  const err=document.getElementById('pwChangeError');
+  if(old!==getTeacherPw()){err.textContent='現在のパスワードが違います。';return;}
+  if(nw.length<4){err.textContent='パスワードは4文字以上にしてください。';return;}
+  if(nw!==nw2){err.textContent='新しいパスワードが一致しません。';return;}
+  showLoading('変更中…');
+  await saveTeacherPassword(nw);
+  hideLoading(); closeModal('changePwModal'); toast('パスワードを変更しました。');
+}
+window.doChangePw=doChangePw;
+
+function buildTeacherClassTabs(entryClass){
+  if(entryClass) teacherCurrentClass=entryClass;
+  const wrap=document.getElementById('teacherClassTabs'); wrap.innerHTML='';
+  const allBtn=document.createElement('button');
+  allBtn.className='teacher-class-tab'+(teacherCurrentClass==='all'?' active':'');
+  allBtn.textContent='すべてのクラス'; allBtn.onclick=()=>{teacherCurrentClass='all';setTeacherTab(allBtn);}; wrap.appendChild(allBtn);
+  getAllClasses().forEach(cls=>{
+    const btn=document.createElement('button'); const cc=getClassColor(cls);
+    btn.className='teacher-class-tab'+(teacherCurrentClass===cls?' active':'');
+    btn.innerHTML=`<span class="class-label-badge ${cc}">${cls}</span>`;
+    btn.onclick=()=>{teacherCurrentClass=cls;setTeacherTab(btn);}; wrap.appendChild(btn);
+  });
+}
+
+function setTeacherTab(btn){document.querySelectorAll('.teacher-class-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTeacherView();}
+
+function renderTeacherView(){
+  const allStudents=_students.filter(s=>!s.isTeacher);
+  let students=teacherCurrentClass==='all'?allStudents:allStudents.filter(s=>s.cls===teacherCurrentClass);
+  const rows=students.map(s=>{
+    const d=getStudentData(s.id);
+    const totalMins=d.sessions.reduce((a,x)=>a+x.dur,0);
+    const focuses=d.sessions.filter(x=>x.focus).map(x=>x.focus);
+    const avgFocus=focuses.length?focuses.reduce((a,b)=>a+b,0)/focuses.length:0;
+    return{...s,totalMins,sessions:d.sessions.length,avgFocus,goals:d.goals.length,allSessions:d.sessions};
+  });
+  renderTeacherStats(rows); renderTWeeklyChart(rows); renderTSubjectChart(rows); renderGradeCompareChart(); renderRankingTable(rows);
+}
+
+function renderTeacherStats(rows){
+  const count=rows.length;
+  const totalMins=rows.reduce((a,r)=>a+r.totalMins,0);
+  const focuses=rows.filter(r=>r.avgFocus>0).map(r=>r.avgFocus);
+  const avgFocus=focuses.length?(focuses.reduce((a,b)=>a+b,0)/focuses.length).toFixed(1):'—';
+  const goalRate=count?Math.round(rows.filter(r=>r.goals>0).length/count*100):'—';
+  document.getElementById('tStatCount').textContent=count;
+  document.getElementById('tStatAvgHours').textContent=count?(totalMins/count/60).toFixed(1):'—';
+  document.getElementById('tStatTotalHours').textContent=(totalMins/60).toFixed(1);
+  document.getElementById('tStatAvgFocus').textContent=avgFocus;
+  document.getElementById('tStatGoalRate').textContent=goalRate;
+}
+
+function tDestroyChart(key){if(tCharts[key]){tCharts[key].destroy();delete tCharts[key];}}
+
+function renderTWeeklyChart(rows){
+  tDestroyChart('weekly');
+  const weeks=[];
+  for(let i=7;i>=0;i--){const start=new Date();start.setDate(start.getDate()-i*7-start.getDay());const end=new Date(start);end.setDate(end.getDate()+6);weeks.push({label:start.toISOString().slice(5,10).replace('-','/'),start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10)});}
+  const allSessions=rows.flatMap(r=>r.allSessions);
+  const vals=weeks.map(w=>{const mins=allSessions.filter(s=>s.date>=w.start&&s.date<=w.end).reduce((a,s)=>a+s.dur,0);return rows.length?Math.round(mins/rows.length/60*10)/10:0;});
+  tCharts.weekly=new Chart(document.getElementById('tChartWeekly').getContext('2d'),{type:'line',data:{labels:weeks.map(w=>w.label),datasets:[{label:'平均時間',data:vals,borderColor:'#c4622d',backgroundColor:'rgba(196,98,45,0.08)',fill:true,tension:0.35,pointRadius:4,pointBackgroundColor:'#c4622d',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},color:'#9a9590'},grid:{display:false}},y:{ticks:{font:{size:10},color:'#9a9590'},grid:{color:'rgba(0,0,0,0.06)'},title:{display:true,text:'時間/生徒',color:'#9a9590',font:{size:10}}}}}});
+}
+
+function renderTSubjectChart(rows){
+  tDestroyChart('subject');
+  const subjects=['Japanese','Mathematics','English','Science','History','Technology','PE','Music','Other'];
+  const colors=['#7c4dab','#2d6bc4','#c4622d','#2d8c5a','#c4962d','#0b8c7a','#c42d6e','#d47b00','#9a9590'];
+  const allSessions=rows.flatMap(r=>r.allSessions);
+  const bySubj={};subjects.forEach(s=>bySubj[s]=0);
+  allSessions.forEach(s=>{bySubj[s.subj]=(bySubj[s.subj]||0)+s.dur;});
+  const nonZero=subjects.map((s,i)=>({s,v:Math.round(bySubj[s]),c:colors[i]})).filter(x=>x.v>0);
+  tCharts.subject=new Chart(document.getElementById('tChartSubject').getContext('2d'),{type:'doughnut',data:{labels:nonZero.map(x=>subjectLabels[x.s]||x.s),datasets:[{data:nonZero.map(x=>x.v),backgroundColor:nonZero.map(x=>x.c),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},color:'#5a5550',boxWidth:10,padding:6}},tooltip:{callbacks:{label:ctx=>' '+ctx.label+'：'+ctx.parsed+'分'}}}}});
+}
+
+function renderGradeCompareChart(){
+  tDestroyChart('grade');
+  const classes=getAllClasses(); if(!classes.length) return;
+  const avgHours=classes.map(cls=>{const sts=_students.filter(s=>s.cls===cls&&!s.isTeacher);if(!sts.length)return 0;const total=sts.reduce((a,s)=>a+(_sessions[s.id]||[]).reduce((b,x)=>b+x.dur,0),0);return Math.round(total/sts.length/60*10)/10;});
+  const avgFocus=classes.map(cls=>{const sts=_students.filter(s=>s.cls===cls&&!s.isTeacher);const allF=sts.flatMap(s=>(_sessions[s.id]||[]).filter(x=>x.focus).map(x=>x.focus));return allF.length?Math.round(allF.reduce((a,b)=>a+b,0)/allF.length*10)/10:0;});
+  tCharts.grade=new Chart(document.getElementById('tChartGrade').getContext('2d'),{type:'bar',data:{labels:classes,datasets:[{label:'平均学習時間（時間）',data:avgHours,backgroundColor:'#c4622d',borderRadius:4,yAxisID:'y'},{label:'平均集中度',data:avgFocus,backgroundColor:'#2d6bc4',borderRadius:4,yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11},color:'#5a5550',boxWidth:12,padding:10}}},scales:{x:{ticks:{font:{size:11},color:'#9a9590'},grid:{display:false}},y:{position:'left',ticks:{font:{size:10},color:'#c4622d'},title:{display:true,text:'時間',color:'#c4622d',font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}},y2:{position:'right',min:0,max:5,ticks:{font:{size:10},color:'#2d6bc4'},title:{display:true,text:'集中度',color:'#2d6bc4',font:{size:10}},grid:{display:false}}}}});
+}
+
+function renderRankingTable(rows){
+  const sort=document.getElementById('tRankSort').value;
+  const sorted=[...rows].sort((a,b)=>sort==='hours'?b.totalMins-a.totalMins:sort==='sessions'?b.sessions-a.sessions:sort==='focus'?b.avgFocus-a.avgFocus:b.goals-a.goals);
+  const maxMins=sorted.length?Math.max(...sorted.map(r=>r.totalMins),1):1;
+  const tbody=document.getElementById('tRankingBody'); tbody.innerHTML='';
+  if(!sorted.length){tbody.innerHTML='<tr class="no-data-row"><td colspan="7">このクラスに生徒がいません</td></tr>';return;}
+  sorted.forEach((r,i)=>{
+    const rank=i+1, rc=rank===1?'gold':rank===2?'silver':rank===3?'bronze':'';
+    const hrs=(r.totalMins/60).toFixed(1), pct=Math.round(r.totalMins/maxMins*100), cc=getClassColor(r.cls||'');
+    const tr=document.createElement('tr'); tr.className='clickable'; tr.title=`${r.name} の詳細を表示`; tr.onclick=()=>openStudentDetail(r.id);
+    tr.innerHTML=`<td class="rank-num ${rc}">${rank}</td><td><span class="class-label-badge ${cc}" style="font-size:10px;margin-right:6px;">${r.cls||'—'}</span><strong style="font-size:13px;">${r.name}</strong><span style="font-size:11px;color:var(--ink3);margin-left:4px;">${r.sid||''}</span></td><td style="font-weight:600;">${hrs}時間</td><td>${r.sessions}回</td><td>${r.avgFocus>0?r.avgFocus.toFixed(1):'—'}</td><td>${r.goals}件</td><td style="min-width:100px;"><div class="progress-mini"><div class="progress-mini-fill" style="width:${pct}%"></div></div><span class="row-detail-arrow">▶ 詳細</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+window.renderRankingTable=renderRankingTable;
+
+// ── 生徒詳細モーダル ─────────────────────────────────────────
+let sdmStudentId=null,sdmShowCount=20,sdmCharts={};
+
+function openStudentDetail(sid){
+  sdmStudentId=sid; sdmShowCount=20;
+  document.getElementById('sdmFilterSubject').value='all';
+  const student=_students.find(s=>s.id===sid); if(!student) return;
+  const data=getStudentData(sid); const cc=getClassColor(student.cls||'');
+  document.getElementById('sdmName').textContent=student.name;
+  document.getElementById('sdmMeta').innerHTML=`<span class="class-label-badge ${cc}" style="font-size:10px;margin-right:6px;">${student.cls||'クラス未設定'}</span>`+(student.sid?`学籍番号：${student.sid}`:'')+( student.note?`　${student.note}`:'');
+  const totalMins=data.sessions.reduce((a,s)=>a+s.dur,0);
+  const focuses=data.sessions.filter(s=>s.focus).map(s=>s.focus);
+  const avgFocus=focuses.length?(focuses.reduce((a,b)=>a+b,0)/focuses.length).toFixed(1):'—';
+  const lastDate=data.sessions.length?data.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date))[0].date:'—';
+  document.getElementById('sdmHours').textContent=(totalMins/60).toFixed(1);
+  document.getElementById('sdmSessions').textContent=data.sessions.length;
+  document.getElementById('sdmFocus').textContent=avgFocus;
+  document.getElementById('sdmLastDate').textContent=lastDate;
+  renderSdmCharts(data.sessions); renderSdmGoals(data.goals); renderSdmHistory();
+  document.getElementById('studentDetailModal').classList.add('open');
+}
+
+function renderSdmCharts(sessions){
+  Object.keys(sdmCharts).forEach(k=>{sdmCharts[k].destroy();delete sdmCharts[k];});
+  const weeks=[];for(let i=7;i>=0;i--){const start=new Date();start.setDate(start.getDate()-i*7-start.getDay());const end=new Date(start);end.setDate(end.getDate()+6);weeks.push({label:start.toISOString().slice(5,10).replace('-','/'),start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10)});}
+  const wVals=weeks.map(w=>Math.round(sessions.filter(s=>s.date>=w.start&&s.date<=w.end).reduce((a,s)=>a+s.dur,0)/60*10)/10);
+  sdmCharts.weekly=new Chart(document.getElementById('sdmChartWeekly').getContext('2d'),{type:'bar',data:{labels:weeks.map(w=>w.label),datasets:[{label:'時間',data:wVals,backgroundColor:'#c4622d',borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},color:'#9a9590',maxRotation:45},grid:{display:false}},y:{ticks:{font:{size:9},color:'#9a9590'},grid:{color:'rgba(0,0,0,0.06)'}}}}});
+  const subjects=['Japanese','Mathematics','English','Science','History','Technology','PE','Music','Other'];
+  const colors=['#7c4dab','#2d6bc4','#c4622d','#2d8c5a','#c4962d','#0b8c7a','#c42d6e','#d47b00','#9a9590'];
+  const bySubj={};subjects.forEach(s=>bySubj[s]=0);sessions.forEach(s=>{bySubj[s.subj]=(bySubj[s.subj]||0)+s.dur;});
+  const nonZero=subjects.map((s,i)=>({s,v:Math.round(bySubj[s]),c:colors[i]})).filter(x=>x.v>0);
+  if(nonZero.length){sdmCharts.subject=new Chart(document.getElementById('sdmChartSubject').getContext('2d'),{type:'doughnut',data:{labels:nonZero.map(x=>subjectLabels[x.s]||x.s),datasets:[{data:nonZero.map(x=>x.v),backgroundColor:nonZero.map(x=>x.c),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},color:'#5a5550',boxWidth:10,padding:5}},tooltip:{callbacks:{label:ctx=>' '+ctx.label+'：'+ctx.parsed+'分'}}}}});}
+}
+
+function renderSdmGoals(goals){
+  const wrap=document.getElementById('sdmGoals');
+  if(!goals.length){wrap.innerHTML='<div class="sdm-empty">目標が設定されていません。</div>';return;}
+  wrap.innerHTML='';
+  goals.forEach(g=>{
+    const daysLeft=g.date?Math.ceil((new Date(g.date)-new Date())/86400000):null;
+    const daysText=daysLeft===null?'':daysLeft<0?'（テスト済み）':`あと${daysLeft}日`;
+    const scores=g.scores||{};
+    const scoreItems=subjOrder.map(s=>{if(scores[s]===undefined)return'';return`<div style="text-align:center;background:rgba(255,255,255,.6);border-radius:5px;padding:3px 4px;"><div style="font-size:9px;color:var(--ink3);">${subjShort[s]}</div><div style="font-size:13px;font-weight:700;">${scores[s]}<span style="font-size:9px;">点</span></div></div>`;}).join('');
+    const div=document.createElement('div');div.className='sdm-goal-card';
+    div.innerHTML=`<div class="sdm-goal-subj">${g.testName||'目標'}</div><div class="sdm-goal-cur" style="margin-bottom:6px;">${g.date||''}　${daysText}</div>${scoreItems?`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;">${scoreItems}</div>`:''}<div style="font-size:12px;color:var(--ink2);">${g.totalScore?`合計目標：<strong>${g.totalScore}点</strong>`:''}</div>${g.desc?`<div style="font-size:11px;color:var(--ink2);margin-top:5px;line-height:1.5;">🎯 ${g.desc}</div>`:''}`;
+    wrap.appendChild(div);
+  });
+}
+
+function renderSdmHistory(){
+  const data=getStudentData(sdmStudentId);
+  const filter=document.getElementById('sdmFilterSubject').value;
+  let sessions=[...data.sessions].sort((a,b)=>b.date.localeCompare(a.date));
+  if(filter!=='all') sessions=sessions.filter(s=>s.subj===filter);
+  const tbody=document.getElementById('sdmHistoryBody'),empty=document.getElementById('sdmHistoryEmpty'),moreWrap=document.getElementById('sdmShowMoreWrap');
+  tbody.innerHTML='';
+  if(!sessions.length){empty.style.display='block';moreWrap.style.display='none';return;}
+  empty.style.display='none';
+  sessions.slice(0,sdmShowCount).forEach(s=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="white-space:nowrap;">${s.date}</td><td><span class="badge ${badgeClasses[s.subj]||'badge-other'}" style="font-size:10px;">${subjectLabels[s.subj]||s.subj}</span></td><td style="white-space:nowrap;">${s.dur}分</td><td style="white-space:nowrap;">${s.focus?'★'.repeat(s.focus)+'☆'.repeat(5-s.focus):'—'}</td><td style="color:var(--ink2);max-width:280px;">${s.contents||'—'}</td>`;
+    tbody.appendChild(tr);
+  });
+  moreWrap.style.display=sessions.length>sdmShowCount?'block':'none';
+}
+window.renderSdmHistory=renderSdmHistory;
+window.sdmShowMore=()=>{sdmShowCount+=20;renderSdmHistory();};
+
+// ── カレンダー ───────────────────────────────────────────────
+const schoolEvents={'2026-04-07':[{t:'始業式・赴任式',ev:'event'}],'2026-04-09':[{t:'入学式',ev:'event'}],'2026-04-13':[{t:'知能検査（1年）',ev:'health'}],'2026-04-14':[{t:'生徒会入会式・部活動紹介',ev:'event'}],'2026-04-15':[{t:'全校集会（総務認証式）',ev:'event'}],'2026-04-17':[{t:'学年集会',ev:'event'}],'2026-04-21':[{t:'全国学力調査（3年）',ev:'test'}],'2026-04-23':[{t:'全国学力調査・県学力調査',ev:'test'}],'2026-04-29':[{t:'昭和の日',ev:'holiday'}],'2026-05-03':[{t:'憲法記念日',ev:'holiday'}],'2026-05-04':[{t:'みどりの日',ev:'holiday'}],'2026-05-05':[{t:'こどもの日',ev:'holiday'}],'2026-05-06':[{t:'振替休日',ev:'holiday'}],'2026-05-07':[{t:'ハイパーQUテスト①',ev:'test'}],'2026-05-12':[{t:'全校集会',ev:'event'}],'2026-05-15':[{t:'授業参観・PTA総会',ev:'event'}],'2026-05-27':[{t:'全学年学力テスト①',ev:'test'}],'2026-05-28':[{t:'全学年学力テスト②',ev:'test'}],'2026-05-29':[{t:'生徒総会',ev:'event'}],'2026-06-10':[{t:'全校集会',ev:'event'}],'2026-06-17':[{t:'前期中間テスト①',ev:'test'}],'2026-06-18':[{t:'前期中間テスト②',ev:'test'}],'2026-06-19':[{t:'夏季中総体選手推戴式',ev:'event'}],'2026-06-20':[{t:'県中総体（テニス等）',ev:'event'}],'2026-06-21':[{t:'県中総体',ev:'event'}],'2026-06-27':[{t:'地区中総体',ev:'event'}],'2026-06-28':[{t:'地区中総体',ev:'event'}],'2026-07-03':[{t:'修学旅行（3年・1日目）',ev:'event'}],'2026-07-04':[{t:'修学旅行（3年・2日目）',ev:'event'}],'2026-07-05':[{t:'修学旅行（3年・3日目）',ev:'event'}],'2026-07-17':[{t:'1学期終業式',ev:'event'}],'2026-07-20':[{t:'海の日',ev:'holiday'}],'2026-08-11':[{t:'山の日',ev:'holiday'}],'2026-08-12':[{t:'学校閉庁日',ev:'holiday'}],'2026-08-13':[{t:'学校閉庁日',ev:'holiday'}],'2026-08-14':[{t:'学校閉庁日',ev:'holiday'}],'2026-08-15':[{t:'学校閉庁日',ev:'holiday'}],'2026-08-16':[{t:'学校閉庁日',ev:'holiday'}],'2026-08-25':[{t:'2学期始業式・課題テスト',ev:'event'}],'2026-08-26':[{t:'課題テスト・全校集会',ev:'test'}],'2026-09-12':[{t:'体育大会',ev:'event'}],'2026-09-21':[{t:'敬老の日',ev:'holiday'}],'2026-09-22':[{t:'国民の休日',ev:'holiday'}],'2026-09-23':[{t:'秋分の日',ev:'holiday'}],'2026-09-28':[{t:'前期末テスト①',ev:'test'}],'2026-09-29':[{t:'前期末テスト②',ev:'test'}],'2026-09-30':[{t:'前期末テスト③',ev:'test'}],'2026-10-12':[{t:'スポーツの日',ev:'holiday'}],'2026-10-13':[{t:'3年SAGAテスト②（3教科）',ev:'test'}],'2026-10-14':[{t:'3年SAGAテスト②（2教科）',ev:'test'}],'2026-10-16':[{t:'通知表配付（前期）',ev:'event'}],'2026-10-30':[{t:'文化発表会・合唱コンクール',ev:'event'}],'2026-11-03':[{t:'文化の日',ev:'holiday'}],'2026-11-04':[{t:'全校集会・授業参観',ev:'event'}],'2026-11-05':[{t:'ハイパーQUテスト②',ev:'test'}],'2026-11-06':[{t:'県駅伝大会',ev:'event'}],'2026-11-11':[{t:'後期中間テスト①（1・2年）',ev:'test'}],'2026-11-12':[{t:'後期中間テスト②（1・2年）',ev:'test'}],'2026-11-13':[{t:'学年末テスト③（3年）',ev:'test'}],'2026-11-23':[{t:'勤労感謝の日',ev:'holiday'}],'2026-12-17':[{t:'学年末テスト①（1・2年）',ev:'test'}],'2026-12-18':[{t:'学年末テスト②（1・2年）',ev:'test'}],'2026-12-19':[{t:'学年末テスト③（1・2年）',ev:'test'}],'2026-12-24':[{t:'2学期終業式',ev:'event'}],'2026-12-29':[{t:'年末休業',ev:'holiday'}],'2026-12-30':[{t:'年末休業',ev:'holiday'}],'2026-12-31':[{t:'年末休業',ev:'holiday'}],'2027-01-01':[{t:'元日・年始休業',ev:'holiday'}],'2027-01-02':[{t:'年始休業',ev:'holiday'}],'2027-01-03':[{t:'年始休業',ev:'holiday'}],'2027-01-08':[{t:'3学期始業式',ev:'event'}],'2027-01-11':[{t:'成人の日',ev:'holiday'}],'2027-01-12':[{t:'課題テスト / 学力テスト',ev:'test'}],'2027-01-13':[{t:'課題テスト / 学力テスト',ev:'test'}],'2027-01-29':[{t:'立志式（1・2年）',ev:'event'}],'2027-02-11':[{t:'建国記念の日',ev:'holiday'}],'2027-02-17':[{t:'学年末テスト①（1・2年）',ev:'test'}],'2027-02-18':[{t:'学年末テスト②（1・2年）',ev:'test'}],'2027-02-19':[{t:'学年末テスト③（1・2年）',ev:'test'}],'2027-02-23':[{t:'天皇誕生日',ev:'holiday'}],'2027-02-26':[{t:'3年を送る会',ev:'event'}],'2027-03-02':[{t:'県立一般選抜入試',ev:'event'}],'2027-03-03':[{t:'県立一般選抜入試',ev:'event'}],'2027-03-05':[{t:'第69回卒業証書授与式',ev:'event'}],'2027-03-20':[{t:'春分の日',ev:'holiday'}],'2027-03-24':[{t:'修了式・辞任式',ev:'event'}]};
+
+let calYear=0,calMonth=0;
+function calInit(){const t=new Date();calYear=t.getFullYear();calMonth=t.getMonth();renderCal();}
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();}
+window.calPrev=calPrev;window.calNext=calNext;
+
+function renderCal(){
+  const label=document.getElementById('calMonthLabel'),grid=document.getElementById('calCells');
+  if(!label||!grid)return;
+  label.textContent=`${calYear}年 ${calMonth+1}月`;
+  const todayStr=new Date().toISOString().slice(0,10);
+  const firstDay=new Date(calYear,calMonth,1),lastDay=new Date(calYear,calMonth+1,0),startDow=firstDay.getDay();
+  grid.innerHTML='';
+  for(let i=0;i<startDow;i++){const b=document.createElement('div');b.className='cal-cell other-month';const pd=new Date(calYear,calMonth,1-startDow+i);b.innerHTML=`<div class="cal-day-num">${pd.getDate()}</div>`;grid.appendChild(b);}
+  for(let d=1;d<=lastDay.getDate();d++){
+    const dow=(startDow+d-1)%7;
+    const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const events=schoolEvents[dateStr]||[];
+    const cell=document.createElement('div');
+    let cls='cal-cell';if(dow===0)cls+=' sun';if(dow===6)cls+=' sat';if(dateStr===todayStr)cls+=' today';if(events.length)cls+=' has-event';
+    cell.className=cls;
+    let inner=`<div class="cal-day-num">${d}</div>`;
+    events.slice(0,3).forEach(ev=>{inner+=`<div class="cal-event ev-${ev.ev}" title="${ev.t}">${ev.t}</div>`;});
+    if(events.length>3)inner+=`<div style="font-size:9px;color:var(--ink3);">…他${events.length-3}件</div>`;
+    cell.innerHTML=inner;grid.appendChild(cell);
+  }
+  const rem=(startDow+lastDay.getDate())%7;
+  if(rem!==0){for(let i=1;i<=7-rem;i++){const b=document.createElement('div');b.className='cal-cell other-month';b.innerHTML=`<div class="cal-day-num">${i}</div>`;grid.appendChild(b);}}
+}
+
+// ── グローバルに公開 ─────────────────────────────────────────
+window.onClassChange=onClassChange;
+window.openNewStudent=openNewStudent;
+window.createStudent=createStudent_manual;
+window.addSession=addSession;
+window.addGoal=addGoal;
+window.renderHistory=renderHistory;
+window.openTeacherTab=()=>openTeacherTabFor(null);
+window.openChangePw=openChangePw;
+window.openChangePwFromLock=openChangePwFromLock;
+window.doChangePw=doChangePw;
+window.doUnlock=doUnlock;
+window.teacherLogout=teacherLogout;
+window.openImportModal=openImportModal;
+
+// ── 起動 ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', loadAll);
+
+</script>
+</body>
+</html>
